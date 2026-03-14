@@ -177,11 +177,11 @@ export default function DashboardPage() {
   const todayClasses = classes.slice(0, 5); // First 5 classes for today
 
   return (
-    <div className="min-h-screen bg-gym-bg p-8">
+    <div className="min-h-screen bg-gym-bg p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gym-text mb-2">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-4xl font-bold text-gym-text mb-2">
             Good morning, Javier
           </h1>
           <p className="text-gym-text-secondary mb-2">
@@ -191,7 +191,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI Cards Row */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
           <KPICard
             icon={DollarSign}
             label="Monthly Revenue"
@@ -223,9 +223,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Second Row: Revenue Chart & Today's Schedule */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
           {/* Revenue Chart */}
-          <div className="col-span-2 bg-gym-card/70 backdrop-blur border border-gym-border rounded-xl p-6">
+          <div className="lg:col-span-2 bg-gym-card/70 backdrop-blur border border-gym-border rounded-xl p-6">
             <h2 className="text-lg font-semibold text-gym-text mb-6">
               Revenue Trend
             </h2>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Third Row: Three Columns */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
           {/* New Leads */}
           <div className="bg-gym-card/70 backdrop-blur border border-gym-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -478,7 +478,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Fourth Row: Tasks & Billing */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* Tasks Due Today */}
           <div className="bg-gym-card/70 backdrop-blur border border-gym-border rounded-xl p-6">
             <h2 className="text-lg font-semibold text-gym-text mb-4">
