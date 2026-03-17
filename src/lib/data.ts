@@ -961,6 +961,131 @@ export const activityEvents: ActivityEvent[] = [
   }
 ];
 
+// Floor Plan Types
+export type StationType = 'heavy_bag' | 'tv_monitor' | 'custom';
+export type BookingStatus = 'available' | 'confirmed' | 'checked_in' | 'waitlisted' | 'no_show' | 'cancelled';
+export type BookingSource = 'self' | 'staff' | 'classpass' | 'ai_chat' | 'ai_voice';
+
+export interface Station {
+  id: string;
+  number: number;
+  label?: string;
+  x: number;
+  y: number;
+  type: StationType;
+  isBookable: boolean;
+}
+
+export interface FloorBooking {
+  id: string;
+  stationId: string;
+  memberId: string;
+  memberName: string;
+  memberAvatar: string;
+  status: BookingStatus;
+  source: BookingSource;
+  isFirstTimer: boolean;
+  checkedInAt?: string;
+}
+
+export interface FloorClass {
+  id: string;
+  name: string;
+  instructor: string;
+  time: string;
+  date: string;
+  capacity: number;
+  enrolled: number;
+  waitlist: number;
+}
+
+// Undisputed Boxing Gym — 24 Heavy Bags + 3 TVs
+export const floorStations: Station[] = [
+  // TVs (decorative, non-bookable)
+  { id: 'st-tv-1', number: 0, label: 'TV 1', x: 0.35, y: 0.04, type: 'tv_monitor', isBookable: false },
+  { id: 'st-tv-2', number: 0, label: 'TV 2', x: 0.50, y: 0.04, type: 'tv_monitor', isBookable: false },
+  { id: 'st-tv-3', number: 0, label: 'TV 3', x: 0.65, y: 0.04, type: 'tv_monitor', isBookable: false },
+  // Row 1: Front row — 4 bags
+  { id: 'st-01', number: 1, x: 0.30, y: 0.18, type: 'heavy_bag', isBookable: true },
+  { id: 'st-02', number: 2, x: 0.43, y: 0.18, type: 'heavy_bag', isBookable: true },
+  { id: 'st-03', number: 3, x: 0.56, y: 0.18, type: 'heavy_bag', isBookable: true },
+  { id: 'st-04', number: 4, x: 0.69, y: 0.18, type: 'heavy_bag', isBookable: true },
+  // Row 2: 6 bags
+  { id: 'st-05', number: 5, x: 0.22, y: 0.34, type: 'heavy_bag', isBookable: true },
+  { id: 'st-06', number: 6, x: 0.35, y: 0.34, type: 'heavy_bag', isBookable: true },
+  { id: 'st-07', number: 7, x: 0.48, y: 0.34, type: 'heavy_bag', isBookable: true },
+  { id: 'st-08', number: 8, x: 0.61, y: 0.34, type: 'heavy_bag', isBookable: true },
+  { id: 'st-09', number: 9, x: 0.74, y: 0.34, type: 'heavy_bag', isBookable: true },
+  { id: 'st-10', number: 10, x: 0.87, y: 0.34, type: 'heavy_bag', isBookable: true },
+  // Row 3: 6 bags
+  { id: 'st-11', number: 11, x: 0.22, y: 0.50, type: 'heavy_bag', isBookable: true },
+  { id: 'st-12', number: 12, x: 0.35, y: 0.50, type: 'heavy_bag', isBookable: true },
+  { id: 'st-13', number: 13, x: 0.48, y: 0.50, type: 'heavy_bag', isBookable: true },
+  { id: 'st-14', number: 14, x: 0.61, y: 0.50, type: 'heavy_bag', isBookable: true },
+  { id: 'st-15', number: 15, x: 0.74, y: 0.50, type: 'heavy_bag', isBookable: true },
+  { id: 'st-16', number: 16, x: 0.87, y: 0.50, type: 'heavy_bag', isBookable: true },
+  // Row 4: 6 bags
+  { id: 'st-17', number: 17, x: 0.22, y: 0.66, type: 'heavy_bag', isBookable: true },
+  { id: 'st-18', number: 18, x: 0.35, y: 0.66, type: 'heavy_bag', isBookable: true },
+  { id: 'st-19', number: 19, x: 0.48, y: 0.66, type: 'heavy_bag', isBookable: true },
+  { id: 'st-20', number: 20, x: 0.61, y: 0.66, type: 'heavy_bag', isBookable: true },
+  { id: 'st-21', number: 21, x: 0.74, y: 0.66, type: 'heavy_bag', isBookable: true },
+  { id: 'st-22', number: 22, x: 0.87, y: 0.66, type: 'heavy_bag', isBookable: true },
+  // Offset bags — lower left
+  { id: 'st-23', number: 23, x: 0.10, y: 0.78, type: 'heavy_bag', isBookable: true },
+  { id: 'st-24', number: 24, x: 0.22, y: 0.78, type: 'heavy_bag', isBookable: true },
+];
+
+// Floor plan classes (today's schedule for floor plan view)
+export const floorClasses: FloorClass[] = [
+  { id: 'fc-001', name: 'KBX 45', instructor: 'Coach Brian', time: '6:00 AM', date: '2026-03-16', capacity: 24, enrolled: 18, waitlist: 2 },
+  { id: 'fc-002', name: 'Fundamentals Boxing', instructor: 'Coach Marcus', time: '9:00 AM', date: '2026-03-16', capacity: 24, enrolled: 12, waitlist: 0 },
+  { id: 'fc-003', name: 'Advanced Boxing', instructor: 'Coach Alex', time: '12:00 PM', date: '2026-03-16', capacity: 24, enrolled: 22, waitlist: 3 },
+  { id: 'fc-004', name: 'KBX 45', instructor: 'Coach Brian', time: '5:30 PM', date: '2026-03-16', capacity: 24, enrolled: 24, waitlist: 5 },
+  { id: 'fc-005', name: 'Open Gym Boxing', instructor: 'Coach Miles', time: '7:00 PM', date: '2026-03-16', capacity: 24, enrolled: 15, waitlist: 0 },
+];
+
+// Fake bookings for fc-001 (6:00 AM KBX 45 — 18 booked)
+export const floorBookings: Record<string, FloorBooking[]> = {
+  'fc-001': [
+    { id: 'fb-01', stationId: 'st-01', memberId: 'mem-001', memberName: 'Marcus Johnson', memberAvatar: 'MJ', status: 'checked_in', source: 'self', isFirstTimer: false, checkedInAt: '2026-03-16T05:52:00' },
+    { id: 'fb-02', stationId: 'st-02', memberId: 'mem-002', memberName: 'Sarah Chen', memberAvatar: 'SC', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-03', stationId: 'st-04', memberId: 'mem-004', memberName: 'Alex Williams', memberAvatar: 'AW', status: 'checked_in', source: 'self', isFirstTimer: false, checkedInAt: '2026-03-16T05:48:00' },
+    { id: 'fb-04', stationId: 'st-05', memberId: 'mem-008', memberName: 'Michael Anderson', memberAvatar: 'MA', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-05', stationId: 'st-06', memberId: 'mem-010', memberName: 'Chris Brown', memberAvatar: 'CB', status: 'confirmed', source: 'staff', isFirstTimer: false },
+    { id: 'fb-06', stationId: 'st-07', memberId: 'mem-011', memberName: 'Priya Patel', memberAvatar: 'PP', status: 'checked_in', source: 'self', isFirstTimer: false, checkedInAt: '2026-03-16T05:55:00' },
+    { id: 'fb-07', stationId: 'st-09', memberId: 'mem-007', memberName: 'Olivia Garcia', memberAvatar: 'OG', status: 'confirmed', source: 'self', isFirstTimer: true },
+    { id: 'fb-08', stationId: 'st-10', memberId: 'mem-006', memberName: 'Robert Thompson', memberAvatar: 'RT', status: 'confirmed', source: 'classpass', isFirstTimer: false },
+    { id: 'fb-09', stationId: 'st-11', memberId: 'mem-999', memberName: 'Rachel Green', memberAvatar: 'RG', status: 'confirmed', source: 'self', isFirstTimer: true },
+    { id: 'fb-10', stationId: 'st-13', memberId: 'mem-998', memberName: 'Tony Reyes', memberAvatar: 'TR', status: 'checked_in', source: 'self', isFirstTimer: false, checkedInAt: '2026-03-16T05:50:00' },
+    { id: 'fb-11', stationId: 'st-14', memberId: 'mem-997', memberName: 'Nina Vasquez', memberAvatar: 'NV', status: 'confirmed', source: 'staff', isFirstTimer: false },
+    { id: 'fb-12', stationId: 'st-16', memberId: 'mem-996', memberName: 'Derek Shaw', memberAvatar: 'DS', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-13', stationId: 'st-17', memberId: 'mem-995', memberName: 'Angela Foster', memberAvatar: 'AF', status: 'confirmed', source: 'ai_chat', isFirstTimer: false },
+    { id: 'fb-14', stationId: 'st-19', memberId: 'mem-994', memberName: 'Carlos Mendez', memberAvatar: 'CM', status: 'no_show', source: 'self', isFirstTimer: false },
+    { id: 'fb-15', stationId: 'st-20', memberId: 'mem-993', memberName: 'Sam Wright', memberAvatar: 'SW', status: 'checked_in', source: 'self', isFirstTimer: false, checkedInAt: '2026-03-16T05:58:00' },
+    { id: 'fb-16', stationId: 'st-21', memberId: 'mem-992', memberName: 'Kai Nakamura', memberAvatar: 'KN', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-17', stationId: 'st-23', memberId: 'mem-991', memberName: 'Lena Okafor', memberAvatar: 'LO', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-18', stationId: 'st-24', memberId: 'mem-990', memberName: 'Jake Morrison', memberAvatar: 'JM', status: 'confirmed', source: 'self', isFirstTimer: true },
+  ],
+  'fc-002': [
+    { id: 'fb-20', stationId: 'st-01', memberId: 'mem-003', memberName: 'David Martinez', memberAvatar: 'DM', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-21', stationId: 'st-03', memberId: 'mem-007', memberName: 'Olivia Garcia', memberAvatar: 'OG', status: 'confirmed', source: 'self', isFirstTimer: true },
+    { id: 'fb-22', stationId: 'st-05', memberId: 'mem-010', memberName: 'Chris Brown', memberAvatar: 'CB', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-23', stationId: 'st-07', memberId: 'mem-998', memberName: 'Tony Reyes', memberAvatar: 'TR', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-24', stationId: 'st-09', memberId: 'mem-997', memberName: 'Nina Vasquez', memberAvatar: 'NV', status: 'confirmed', source: 'staff', isFirstTimer: false },
+    { id: 'fb-25', stationId: 'st-11', memberId: 'mem-001', memberName: 'Marcus Johnson', memberAvatar: 'MJ', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-26', stationId: 'st-13', memberId: 'mem-002', memberName: 'Sarah Chen', memberAvatar: 'SC', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-27', stationId: 'st-15', memberId: 'mem-008', memberName: 'Michael Anderson', memberAvatar: 'MA', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-28', stationId: 'st-17', memberId: 'mem-996', memberName: 'Derek Shaw', memberAvatar: 'DS', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-29', stationId: 'st-19', memberId: 'mem-994', memberName: 'Carlos Mendez', memberAvatar: 'CM', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-30', stationId: 'st-21', memberId: 'mem-993', memberName: 'Sam Wright', memberAvatar: 'SW', status: 'confirmed', source: 'self', isFirstTimer: false },
+    { id: 'fb-31', stationId: 'st-24', memberId: 'mem-991', memberName: 'Lena Okafor', memberAvatar: 'LO', status: 'confirmed', source: 'self', isFirstTimer: false },
+  ],
+  'fc-003': [],
+  'fc-004': [],
+  'fc-005': [],
+};
+
 // Dashboard KPIs
 export const dashboardKPIs: DashboardKPIs = {
   monthlyRevenue: 24850,
