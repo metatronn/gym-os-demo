@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import CommandPanel from "@/components/CommandPanel";
+import AppFrame from "@/components/AppFrame";
+import { IS_CLERK_ENABLED } from "@/lib/env";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "GYM OS | AI Operating System for Gyms",
-  description: "The AI-native operating system for gyms and wellness businesses",
+  description:
+    "The AI-native operating system for gyms and wellness businesses",
 };
 
 export default function RootLayout({
@@ -16,16 +19,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const app = <AppFrame>{children}</AppFrame>;
+
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gym-bg text-gym-text antialiased`}>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
-            {children}
-          </main>
-          <CommandPanel />
-        </div>
+      <body
+        className={`${inter.className} bg-gym-bg text-gym-text antialiased`}
+      >
+        {IS_CLERK_ENABLED ? (
+          <ClerkProvider appearance={{ baseTheme: dark }}>{app}</ClerkProvider>
+        ) : (
+          app
+        )}
       </body>
     </html>
   );

@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GYM OS
 
-## Getting Started
+AI-native operating system for gyms and wellness businesses. Multi-tenant SaaS built with Next.js 14, Drizzle ORM, Clerk auth, Stripe billing, and a local-first development workflow.
 
-First, run the development server:
+## Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+make dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+One command starts Postgres, runs migrations, seeds demo data, and launches the dev server at [localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Prerequisites:** Node.js 20.x and Docker Desktop.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Developer Commands
 
-## Learn More
+```bash
+make dev          # Full setup + dev server
+make devstop      # Stop Docker containers
+make dev-fresh    # Nuke DB, rebuild from scratch
+make dev-seed     # Re-run seed data
+make dev-studio   # Open Drizzle Studio (DB browser)
+make dev-stripe   # Start Stripe webhook forwarding
+make dev-status   # Show running services
+make help         # List all commands
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router, Server Components, Server Actions) |
+| Database | Postgres (local Docker) / Neon (production) |
+| ORM | Drizzle ORM with postgres.js driver |
+| Auth | Clerk (Organizations for multi-tenancy) |
+| Billing | Stripe (Checkout, Portal, Webhooks) |
+| Email | Resend (React Email templates) |
+| Background Jobs | Inngest (serverless, local dev server included) |
+| Notifications | Slack (per-tenant outbound webhooks) |
+| Styling | Tailwind CSS with custom design tokens |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+  app/              Next.js App Router pages and API routes
+  components/       Shared React components
+  db/
+    schema/         Drizzle table definitions (11 tables)
+    queries/        Tenant-scoped query functions
+    seed.ts         Demo data seeder
+  lib/              Utilities (auth, env, stripe, subscription)
+  emails/           React Email templates
+  jobs/             Inngest background job definitions
+drizzle/            Generated SQL migrations
+roadmap/            Production roadmap (45 tasks across 12 phases)
+docs/               Local dev guide + production migration checklist
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Every database query is tenant-scoped. Tenant ID comes from Clerk auth (`orgId`), never from client input. The same codebase runs locally against Docker Postgres and in production against Neon -- the only difference is environment variables.
+
+```
+Browser --> Next.js --> Postgres (Docker or Neon)
+              |              |
+          Clerk (Auth)   Drizzle (ORM)
+              |
+          Stripe (Billing) <--> Webhooks --> Inngest (Jobs)
+                                                |
+                                       Resend (Email) + Slack
+```
+
+## Documentation
+
+| Topic | Link |
+|-------|------|
+| Local dev environment | [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) |
+| Production migration path | [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md#migrating-to-production) |
+| Required accounts & API keys | [NEEDS.md](NEEDS.md) |
+| Full roadmap | [roadmap/index.md](roadmap/index.md) |
+| Coding guidelines | [CODING_GUIDELINES.md](CODING_GUIDELINES.md) |
+
+## Roadmap Status
+
+| Phase | Status |
+|-------|--------|
+| 0 -- Infrastructure & CI/CD | Done |
+| 1 -- Foundation (DB, Auth, Tenancy) | Done |
+| 2 -- Billing & Payments | Done |
+| 3 -- Core Features (Mock to Real) | Done |
+| 4 -- Email, Notifications & Jobs | Done |
+| 5 -- Polish & Hardening | Next |
+| 6-12 -- Growth, AI, Platform | Planned |
+
+## License
+
+Private. All rights reserved.

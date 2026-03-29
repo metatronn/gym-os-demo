@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-lint:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_stub"
+          CLERK_SECRET_KEY: "sk_test_stub"

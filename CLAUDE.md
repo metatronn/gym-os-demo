@@ -10,6 +10,7 @@ AI-native operating system for gyms and wellness businesses. Next.js 14 SaaS —
 |------------------------------------------|--------------------------------------------------------------|
 | **Set up local dev**                     | [local/setup.md](.claude/guides/local/setup.md)              |
 | **Understand the tech stack**            | [local/stack.md](.claude/guides/local/stack.md)              |
+| **Local vs. prod & migration path**     | [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)                       |
 | **Deploy or manage Vercel**              | [ops/deploying.md](.claude/guides/ops/deploying.md)          |
 | **Run database migrations**             | [ops/migrations.md](.claude/guides/ops/migrations.md)        |
 | **Manage secrets/env vars**             | [ops/secrets.md](.claude/guides/ops/secrets.md)              |
@@ -20,6 +21,11 @@ AI-native operating system for gyms and wellness businesses. Next.js 14 SaaS —
 | **See what accounts/services are needed**| [NEEDS.md](NEEDS.md)                                        |
 | **See the recruited team**              | [.claude/TEAM.md](.claude/TEAM.md)                           |
 
+## Goals
+
+- **Zero-config local dev:** `make dev` must work on localhost with NO env vars set — Docker Postgres, mock/disabled services, no external accounts required.
+- **Production readiness:** All external service setup (Clerk, Stripe, Neon, Resend, Inngest, Sentry, PostHog) is documented in [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) § "Migrating to Production" and [NEEDS.md](NEEDS.md).
+
 ## Critical Rules
 
 - **Tenant isolation:** Every database query MUST include `WHERE tenant_id = ?`. The `tenantId` MUST come from `auth()`, NEVER from request body/params.
@@ -28,6 +34,19 @@ AI-native operating system for gyms and wellness businesses. Next.js 14 SaaS —
 - **Stripe webhooks:** ALWAYS verify signatures with `stripe.webhooks.constructEvent()` before processing.
 - **Auth:** All app routes require Clerk auth. Only `/sign-in`, `/sign-up`, `/api/webhooks/*`, and `/api/health` are public.
 - **Mock data:** `src/lib/data.ts` is the legacy mock file. As features go live, remove the corresponding mock data. Do not add to it.
+
+## Dev Environment
+
+```bash
+make dev              # Full setup + dev server (one command)
+make devstop          # Stop Docker containers
+make dev-fresh         # Nuke DB, rebuild from scratch
+make dev-seed          # Re-run seed data
+make dev-studio        # Database browser
+make dev-stripe        # Stripe webhook forwarding
+make dev-status        # Show running services
+make help             # All commands
+```
 
 ## Quick Reference
 

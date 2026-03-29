@@ -5,44 +5,44 @@
 ## Prerequisites
 
 - Node.js 20.x
+- Docker Desktop (for local Postgres)
 - npm (comes with Node)
-- Stripe CLI (`brew install stripe/stripe-cli/stripe`)
-- Access to Vercel project (for pulling env vars)
+
+Optional (install when you need them):
+- Stripe CLI (`brew install stripe/stripe-cli/stripe`) — for webhook testing
+- Clerk dev account ([clerk.com](https://clerk.com)) — for auth features
 
 ## Quick Start
 
 ```bash
-# 1. Clone and install
 git clone git@github.com:metatronn/gym-os-demo.git
 cd gym-os-demo
-npm ci
-
-# 2. Set up environment
-cp .env.example .env.local
-# Fill in values from each service dashboard (see NEEDS.md)
-# OR pull from Vercel:
-vercel env pull .env.local
-
-# 3. Start dev server
-npm run dev
+make dev
 # → http://localhost:3000
+```
 
-# 4. (Optional) Start Stripe webhook forwarding
+`make dev` handles Docker, .env.local, deps, migrations, seeding, and starts the dev server.
+Run `make help` to see all commands. No Neon, Vercel, or external accounts needed.
+
+## Optional: Add Services As Needed
+
+```bash
+# Stripe webhook forwarding (when working on billing)
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
-# Copy the webhook signing secret into .env.local as STRIPE_WEBHOOK_SECRET
 
-# 5. (Optional) Start Inngest dev server
+# Inngest local dev server (when working on background jobs)
 npx inngest-cli dev
-# → http://localhost:8288 (Inngest dashboard)
+# → http://localhost:8288
 
-# 6. (Optional) Start Drizzle Studio
+# Database browser
 npm run db:studio
-# → DB browser UI
 ```
 
 ## Environment Variables
 
-See [NEEDS.md](../../../NEEDS.md) for the full list of required accounts and secrets. The `.env.example` file documents every variable.
+See `.env.example` for the full list with descriptions. Local Postgres defaults are pre-filled. Service API keys are optional — features degrade gracefully without them.
+
+For the full local vs. production comparison, see [docs/LOCAL_DEV.md](../../../docs/LOCAL_DEV.md).
 
 ## Common Commands
 
@@ -60,11 +60,14 @@ npm run db:seed       # Seed test data
 
 ## Troubleshooting
 
-### `Missing required environment variable: X`
-The app validates env vars at startup. Check `.env.local` has all required values. See `.env.example`.
+### `Missing required environment variable: DATABASE_URL`
+Make sure you copied `.env.example` to `.env.local`. The local Postgres defaults are pre-filled.
+
+### Docker Postgres won't start
+Check if port 5432 is already in use: `lsof -i :5432`. If another Postgres is running, stop it or change the port in `docker-compose.yml`.
+
+### Database connection failed
+Make sure Docker Postgres is running: `docker compose ps`. The container should show "healthy".
 
 ### Stripe webhooks not arriving
 Make sure `stripe listen` is running and the signing secret in `.env.local` matches what `stripe listen` printed.
-
-### Database connection failed
-Check `DATABASE_URL` in `.env.local`. Neon databases sleep after 5 min of inactivity — the first request may be slow but should connect.

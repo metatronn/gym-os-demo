@@ -5,27 +5,29 @@
 ## Architecture
 
 ```
-Browser → Vercel (Next.js) → Neon (Postgres)
-              ↕                    ↕
-          Clerk (Auth)        Drizzle (ORM)
+Browser → Next.js (local or Vercel) → Postgres (local Docker or Neon)
+              ↕                            ↕
+          Clerk (Auth)               Drizzle (ORM)
               ↕
           Stripe (Billing) ←→ Webhooks → Inngest (Jobs)
                                               ↕
                                      Resend (Email) + Slack
 ```
 
+All external services are accessed through environment variables. The same code runs locally (Docker Postgres, `next dev`) and in production (Neon, Vercel). See [docs/LOCAL_DEV.md](../../../docs/LOCAL_DEV.md) for the full comparison.
+
 ## Stack Decisions
 
 | Choice | Why |
 |--------|-----|
 | **Next.js 14 App Router** | Server Components for data fetching, Server Actions for mutations, built-in API routes for webhooks |
-| **Neon** | Serverless Postgres — scales to zero, branch-per-preview, no connection management |
+| **Postgres (local) / Neon (prod)** | Same database, different hosting. Drizzle doesn't care which. |
 | **Drizzle** | Type-safe ORM that generates SQL you can read. Better DX than Prisma for this scale. |
-| **Clerk** | Auth + Organizations (multi-tenancy) out of the box. No custom auth code. |
-| **Stripe** | Industry standard. Checkout + Customer Portal means we don't build billing UI. |
-| **Resend** | React Email templates. Same mental model as the rest of the app. |
-| **Inngest** | Serverless background jobs with retry, scheduling, and step functions. No Redis/queue infrastructure. |
-| **Vercel** | Default Next.js host. Preview deploys, edge functions, Speed Insights. |
+| **postgres.js** | Universal Postgres driver. Works with local Postgres and Neon without code changes. |
+| **Clerk** | Auth + Organizations (multi-tenancy) out of the box. Dev keys work on localhost. |
+| **Stripe** | Industry standard. Test mode for dev, live mode for prod. Same API. |
+| **Resend** | React Email templates. Console fallback for local dev. |
+| **Inngest** | Serverless background jobs with local dev server. No Redis/queue infrastructure. |
 
 ## Multi-Tenancy Model
 
@@ -52,7 +54,8 @@ Clerk User → org member with role (admin, coach, staff)
 | API routes | `src/app/api/*/route.ts` |
 | DB client | `src/db/index.ts` |
 | DB schema | `src/db/schema/*.ts` |
-| DB queries | `src/db/queries/*.ts` |
+| DB seed | `src/db/seed.ts` |
+| Env validation | `src/lib/env.ts` |
 | Auth helpers | `src/lib/auth.ts` |
 | Stripe client | `src/lib/stripe.ts` |
 | Inngest client | `src/lib/inngest.ts` |
@@ -60,3 +63,6 @@ Clerk User → org member with role (admin, coach, staff)
 | Email templates | `src/emails/*.tsx` |
 | Design tokens | `tailwind.config.ts` |
 | Mock data (legacy) | `src/lib/data.ts` |
+| Docker Compose | `docker-compose.yml` |
+| Drizzle config | `drizzle.config.ts` |
+| Env template | `.env.example` |
