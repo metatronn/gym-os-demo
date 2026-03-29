@@ -1,44 +1,100 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import type { NextFetchEvent, NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { IS_CLERK_ENABLED } from "@/lib/env";
+import {
+  buildAuthHeaders,
+  clearSessionCookie,
+  createSessionToken,
+  getSessionTokenFromRequest,
+  setSessionCookie,
+  verifySessionToken,
+} from "@/lib/auth-session";
 
-const isPublicRoute = createRouteMatcher([
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/api/webhooks/(.*)",
-  "/api/health",
-]);
+const PUBLIC_ROUTE_PATTERNS = [
+  /^\/sign-in(?:\/.*)?$/,
+  /^\/sign-up(?:\/.*)?$/,
+  /^\/forgot-password(?:\/.*)?$/,
+  /^\/reset-password(?:\/.*)?$/,
+  /^\/accept-invite(?:\/.*)?$/,
+  /^\/api\/auth\/sign-in$/,
+  /^\/api\/auth\/sign-up$/,
+  /^\/api\/auth\/forgot-password$/,
+  /^\/api\/auth\/reset-password$/,
+  /^\/api\/auth\/verify-email$/,
+  /^\/api\/tenants\/accept-invite$/,
+  /^\/api\/webhooks\/.*$/,
+  /^\/api\/health$/,
+];
 
-const isOnboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
+function isPublicRoute(pathname: string) {
+  return PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
+}
 
-const clerkHandler = IS_CLERK_ENABLED
-  ? clerkMiddleware(async (auth, request) => {
-      if (isPublicRoute(request)) {
-        return NextResponse.next();
-      }
+function isOnboardingRoute(pathname: string) {
+  return /^\/onboarding(?:\/.*)?$/.test(pathname);
+}
 
-      await auth.protect();
-      const session = await auth();
+function isApiRoute(pathname: string) {
+  return pathname.startsWith("/api/");
+}
 
-      if (!session.orgId && !isOnboardingRoute(request)) {
-        return NextResponse.redirect(new URL("/onboarding", request.url));
-      }
-
-      return NextResponse.next();
-    })
-  : null;
-
-export default function middleware(
-  request: NextRequest,
-  event: NextFetchEvent,
-) {
-  if (!clerkHandler) {
-    // No Clerk — every route is accessible, you're already "logged in"
-    return NextResponse.next();
+function unauthorizedResponse(request: NextRequest) {
+  if (isApiRoute(request.nextUrl.pathname)) {
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 },
+    );
   }
 
-  return clerkHandler(request, event);
+  return NextResponse.redirect(new URL("/sign-in", request.url));
+}
+
+export default async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const token = getSessionTokenFromRequest(request);
+
+  if (!token) {
+    if (isPublicRoute(pathname)) {
+      return NextResponse.next();
+    }
+
+    return unauthorizedResponse(request);
+  }
+
+  const payload = await verifySessionToken(token);
+
+  if (!payload) {
+    const response = isPublicRoute(pathname)
+      ? NextResponse.next()
+      : unauthorizedResponse(request);
+    clearSessionCookie(response);
+    return response;
+  }
+
+  const freshToken = await createSessionToken({
+    userId: payload.sub,
+    tenantId: payload.tid ?? null,
+    role: payload.role ?? null,
+    tokenVersion: payload.ver,
+  });
+
+  if (
+    !payload.tid &&
+    !isPublicRoute(pathname) &&
+    !isApiRoute(pathname) &&
+    !isOnboardingRoute(pathname)
+  ) {
+    const response = NextResponse.redirect(new URL("/onboarding", request.url));
+    setSessionCookie(response, freshToken);
+    return response;
+  }
+
+  const response = NextResponse.next({
+    request: {
+      headers: buildAuthHeaders(request, payload),
+    },
+  });
+  setSessionCookie(response, freshToken);
+  return response;
 }
 
 export const config = {

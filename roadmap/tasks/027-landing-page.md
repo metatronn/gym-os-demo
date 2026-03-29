@@ -2,7 +2,7 @@
 
 **Phase:** 6 — Growth
 **Priority:** Medium
-**Depends on:** [006](./006-clerk-auth.md)
+**Depends on:** [006](./006-auth.md)
 **Blocks:** Nothing (leaf task)
 
 ---
@@ -16,8 +16,8 @@ Build a public-facing landing page at `/` (instead of the current redirect to `/
 ### 1. Route Structure
 
 - `/` — Public landing page (no auth required)
-- `/sign-up` — Clerk sign-up page
-- `/sign-in` — Clerk sign-in page
+- `/sign-up` — Sign-up page
+- `/sign-in` — Sign-in page
 - `/dashboard` — Authenticated app (existing)
 
 Update `src/app/page.tsx` from a redirect to a real page.

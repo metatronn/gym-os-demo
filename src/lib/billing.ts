@@ -108,7 +108,7 @@ export async function createCheckoutSessionUrl(
 
   if (!customerId) {
     const customer = await stripe.customers.create({
-      metadata: { tenantId, clerkUserId: userId },
+      metadata: { tenantId, userId },
     });
     customerId = customer.id;
 

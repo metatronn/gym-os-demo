@@ -49,10 +49,40 @@ export async function getLead(id: string) {
   return leadQueries(tenant).getById(id);
 }
 
+const VALID_LEAD_STATUSES = new Set([
+  "new",
+  "contacted",
+  "booked",
+  "converted",
+  "lost",
+]);
+const VALID_LEAD_SOURCES = new Set([
+  "Instagram",
+  "Website",
+  "Facebook",
+  "Walk-in",
+  "Referral",
+  "Google",
+]);
+
 export async function createLead(data: CreateLeadInput) {
+  const name = String(data.name ?? "").trim();
+  if (!name || name.length > 200) throw new Error("Invalid name");
+  if (data.email && (typeof data.email !== "string" || data.email.length > 320))
+    throw new Error("Invalid email");
+  if (data.source && !VALID_LEAD_SOURCES.has(data.source))
+    throw new Error("Invalid source");
+  if (data.status && !VALID_LEAD_STATUSES.has(data.status))
+    throw new Error("Invalid status");
+  if (
+    data.score !== undefined &&
+    (typeof data.score !== "number" || data.score < 0 || data.score > 100)
+  )
+    throw new Error("Invalid score");
+
   const tenant = await tenantDb();
   const id = `lead-${crypto.randomUUID()}`;
-  const lead = await leadQueries(tenant).create({ id, ...data });
+  const lead = await leadQueries(tenant).create({ id, ...data, name });
   await activityQueries(tenant).create({
     type: "lead-new",
     description: `New lead: ${lead.name}${lead.source ? ` from ${lead.source}` : ""}`,

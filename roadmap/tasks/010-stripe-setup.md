@@ -63,7 +63,7 @@ export async function POST() {
   let customerId = tenant.stripeCustomerId;
   if (!customerId) {
     const customer = await stripe.customers.create({
-      metadata: { tenantId: orgId, clerkUserId: userId },
+      metadata: { tenantId: orgId, userId },
     });
     customerId = customer.id;
 

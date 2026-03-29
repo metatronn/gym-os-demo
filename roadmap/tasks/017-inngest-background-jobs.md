@@ -210,7 +210,7 @@ From webhook handlers and server actions, fire Inngest events:
 ```ts
 import { inngest } from '@/lib/inngest';
 
-// After tenant creation (in Clerk webhook):
+// After tenant creation (in the create-org API route):
 await inngest.send({
   name: 'tenant/created',
   data: { tenantId: org.id, ownerEmail: '...', gymName: org.name },

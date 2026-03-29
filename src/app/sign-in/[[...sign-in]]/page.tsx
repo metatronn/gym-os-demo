@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation";
-import { SignIn } from "@clerk/nextjs";
-import { IS_CLERK_ENABLED } from "@/lib/env";
+import SignInForm from "@/components/auth/SignInForm";
+import { getAuthContext } from "@/lib/auth";
 
-export default function SignInPage() {
-  if (!IS_CLERK_ENABLED) {
-    redirect("/dashboard");
+export default async function SignInPage() {
+  const auth = await getAuthContext();
+
+  if (auth.userId) {
+    redirect(auth.orgId ? "/dashboard" : "/onboarding");
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gym-bg px-4">
-      <SignIn />
-    </div>
-  );
+  return <SignInForm />;
 }

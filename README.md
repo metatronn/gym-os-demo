@@ -1,6 +1,6 @@
 # GYM OS
 
-AI-native operating system for gyms and wellness businesses. Multi-tenant SaaS built with Next.js 14, Drizzle ORM, Clerk auth, Stripe billing, and a local-first development workflow.
+AI-native operating system for gyms and wellness businesses. Multi-tenant SaaS built with Next.js 14, Drizzle ORM, native JWT auth, Stripe billing, and a local-first development workflow.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ make help         # List all commands
 | Framework | Next.js 14 (App Router, Server Components, Server Actions) |
 | Database | Postgres (local Docker) / Neon (production) |
 | ORM | Drizzle ORM with postgres.js driver |
-| Auth | Clerk (Organizations for multi-tenancy) |
+| Auth | Native JWT (jose + bcryptjs) |
 | Billing | Stripe (Checkout, Portal, Webhooks) |
 | Email | Resend (React Email templates) |
 | Background Jobs | Inngest (serverless, local dev server included) |
@@ -59,12 +59,12 @@ docs/               Local dev guide + production migration checklist
 
 ## Architecture
 
-Every database query is tenant-scoped. Tenant ID comes from Clerk auth (`orgId`), never from client input. The same codebase runs locally against Docker Postgres and in production against Neon -- the only difference is environment variables.
+Every database query is tenant-scoped. Tenant ID comes from the JWT session (`orgId`), never from client input. The same codebase runs locally against Docker Postgres and in production against Neon -- the only difference is environment variables.
 
 ```
 Browser --> Next.js --> Postgres (Docker or Neon)
               |              |
-          Clerk (Auth)   Drizzle (ORM)
+          Auth (JWT)     Drizzle (ORM)
               |
           Stripe (Billing) <--> Webhooks --> Inngest (Jobs)
                                                 |

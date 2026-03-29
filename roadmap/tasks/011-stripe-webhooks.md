@@ -155,7 +155,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 ### 3. Webhook Security
 
 - The route MUST verify the Stripe signature before processing
-- The route is excluded from Clerk auth middleware (it's in the public routes list)
+- The route is excluded from auth middleware (it's in the public routes list)
 - Always return `200` even if processing fails (Stripe retries on non-2xx)
 - Log errors but don't expose them in the response
 

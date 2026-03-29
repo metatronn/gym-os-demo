@@ -38,10 +38,10 @@ This roadmap now covers the full implementation arc:
 | # | Task | Priority | Depends On | Status |
 |---|------|----------|------------|--------|
 | 005 | [Neon Database & Drizzle ORM Setup](./tasks/005-neon-database.md) | Critical | 003 | `done` (local Postgres) |
-| 006 | [Clerk Authentication & Multi-Tenancy](./tasks/006-clerk-auth.md) | Critical | 003 | `done` (Clerk-ready) |
+| 006 | [Authentication & Multi-Tenancy](./tasks/006-auth.md) | Critical | 003 | `done` |
 | 007 | [Database Schema Design & Initial Migration](./tasks/007-db-schema.md) | Critical | 005, 006 | `done` |
 | 008 | [Tenant Middleware & Data Access Layer](./tasks/008-tenant-middleware.md) | Critical | 006, 007 | `done` |
-| 009 | [Onboarding Flow (Sign Up → Org → Trial)](./tasks/009-onboarding-flow.md) | High | 006, 008 | `done` (requires Clerk keys) |
+| 009 | [Onboarding Flow (Sign Up → Org → Trial)](./tasks/009-onboarding-flow.md) | High | 006, 008 | `done` |
 
 **Exit criteria:** User can sign up → create gym → see dashboard behind auth. Tenant row exists in Neon with 14-day trial. All data queries are tenant-scoped.
 

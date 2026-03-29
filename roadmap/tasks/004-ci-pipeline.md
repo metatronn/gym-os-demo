@@ -59,8 +59,7 @@ jobs:
           # Stub env vars so the build doesn't fail on missing secrets
           # These are NOT real values — just enough to pass the build step
           DATABASE_URL: "postgresql://stub:stub@localhost:5432/stub"
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_stub"
-          CLERK_SECRET_KEY: "sk_test_stub"
+          AUTH_SECRET: "stub-secret-for-ci-build-only"
 ```
 
 ### 2. Key Design Decisions

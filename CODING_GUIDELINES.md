@@ -10,7 +10,7 @@
 | Icons | Lucide React | Font Awesome, Hero Icons |
 | Charts | Recharts | Chart.js, D3 (direct) |
 | Database | Drizzle ORM + Neon | Prisma, raw SQL strings |
-| Auth | Clerk (`@clerk/nextjs`) | NextAuth, custom auth |
+| Auth | Native JWT (`jose` + `bcryptjs`) | NextAuth, Clerk, Auth0 |
 | Payments | Stripe (`stripe` package) | PayPal, custom billing |
 | Email | Resend + React Email | SendGrid, Nodemailer |
 | Jobs | Inngest | BullMQ, node-cron |

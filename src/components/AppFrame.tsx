@@ -5,7 +5,14 @@ import Sidebar from "@/components/Sidebar";
 import CommandPanel from "@/components/CommandPanel";
 import { TrialBanner } from "@/components/TrialBanner";
 
-const SHELLLESS_ROUTES = ["/sign-in", "/sign-up", "/onboarding"];
+const SHELLLESS_ROUTES = [
+  "/sign-in",
+  "/sign-up",
+  "/onboarding",
+  "/forgot-password",
+  "/reset-password",
+  "/accept-invite",
+];
 
 function isShelllessRoute(pathname: string): boolean {
   return SHELLLESS_ROUTES.some(

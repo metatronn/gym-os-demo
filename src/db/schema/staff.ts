@@ -21,6 +21,12 @@ export const staffMemberships = pgTable(
     role: text("role").notNull().default("org:staff"),
     email: text("email"),
     name: text("name"),
+    invitedByUserId: text("invited_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    inviteToken: text("invite_token").unique(),
+    inviteExpiresAt: timestamp("invite_expires_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     status: staffStatusEnum("status").notNull().default("active"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

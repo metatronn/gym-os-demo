@@ -7,7 +7,7 @@
 ```
 Browser → Next.js (local or Vercel) → Postgres (local Docker or Neon)
               ↕                            ↕
-          Clerk (Auth)               Drizzle (ORM)
+          Auth (JWT)               Drizzle (ORM)
               ↕
           Stripe (Billing) ←→ Webhooks → Inngest (Jobs)
                                               ↕
@@ -24,24 +24,24 @@ All external services are accessed through environment variables. The same code 
 | **Postgres (local) / Neon (prod)** | Same database, different hosting. Drizzle doesn't care which. |
 | **Drizzle** | Type-safe ORM that generates SQL you can read. Better DX than Prisma for this scale. |
 | **postgres.js** | Universal Postgres driver. Works with local Postgres and Neon without code changes. |
-| **Clerk** | Auth + Organizations (multi-tenancy) out of the box. Dev keys work on localhost. |
+| **Native JWT auth** | Own the auth stack. JWT via jose, passwords via bcryptjs. No vendor lock-in, no per-MAU pricing. |
 | **Stripe** | Industry standard. Test mode for dev, live mode for prod. Same API. |
 | **Resend** | React Email templates. Console fallback for local dev. |
 | **Inngest** | Serverless background jobs with local dev server. No Redis/queue infrastructure. |
 
 ## Multi-Tenancy Model
 
-Clerk Organizations = Tenants (Gyms). Every database table has a `tenant_id` column that stores the Clerk `orgId`. Every query filters by `tenant_id`.
+Organizations = Tenants (Gyms). Every database table has a `tenant_id` column. Every query filters by `tenant_id`. Organizations and memberships are managed directly in the `tenants` and `staff_memberships` tables.
 
 ```
-Clerk Org (gym) → tenants table → all data scoped by tenant_id
-Clerk User → org member with role (admin, coach, staff)
+Organization (gym) → tenants table → all data scoped by tenant_id
+User → staff_memberships → role (admin, coach, staff)
 ```
 
 ## Data Flow
 
-1. **User signs up** → Clerk creates user
-2. **User creates gym** → Clerk creates Organization → webhook → `tenants` row with trial
+1. **User signs up** → API creates user, issues JWT session
+2. **User creates gym** → API creates tenant + staff_membership → `tenants` row with trial
 3. **User upgrades** → Stripe Checkout → webhook → `tenants.subscriptionStatus = 'active'`
 4. **Payment fails** → Stripe webhook → Inngest job → Resend email + Slack notification
 5. **Daily** → Inngest cron → trial expiration check + daily digest email/Slack

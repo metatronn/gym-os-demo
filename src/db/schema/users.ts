@@ -1,10 +1,14 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
   "users",
   {
     id: text("id").primaryKey(),
-    email: text("email"),
+    legacyClerkId: text("legacy_clerk_id").unique(),
+    email: text("email").notNull().unique(),
+    passwordHash: text("password_hash"),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    tokenVersion: integer("token_version").notNull().default(0),
     firstName: text("first_name"),
     lastName: text("last_name"),
     fullName: text("full_name"),
@@ -17,7 +21,6 @@ export const users = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    emailIdx: index("users_email_idx").on(table.email),
     fullNameIdx: index("users_full_name_idx").on(table.fullName),
   }),
 );

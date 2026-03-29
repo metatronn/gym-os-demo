@@ -1,15 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  OrganizationSwitcher,
-  UserButton,
-  useOrganization,
-  useUser,
-} from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
 import {
   LayoutDashboard,
   Users,
@@ -23,6 +16,8 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 
 interface NavItem {
@@ -48,69 +43,201 @@ const navItems: NavItem[] = [
   { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
 ];
 
-const authEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+type SessionPayload = {
+  user: {
+    id: string;
+    email: string;
+    fullName: string | null;
+  } | null;
+  activeTenant: {
+    id: string;
+    tenantId: string;
+    tenantName: string;
+    role: string;
+  } | null;
+  memberships: Array<{
+    id: string;
+    tenantId: string;
+    tenantName: string;
+    role: string;
+  }>;
+};
 
-function LocalSidebarFooter() {
+function NativeSidebarFooter() {
+  const router = useRouter();
+  const [session, setSession] = useState<SessionPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (active) {
+            setSession(null);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as SessionPayload;
+
+        if (active) {
+          setSession(payload);
+        }
+      } catch {
+        if (active) {
+          setSession(null);
+        }
+      }
+    }
+
+    void loadSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleTenantSwitch(nextTenantId: string) {
+    if (!nextTenantId || nextTenantId === session?.activeTenant?.tenantId) {
+      return;
+    }
+
+    setSwitching(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/tenants/switch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantId: nextTenantId,
+        }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setError(payload.error ?? "We couldn't switch gyms.");
+        setSwitching(false);
+        return;
+      }
+
+      setSession((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const nextActiveTenant =
+          current.memberships.find(
+            (membership) => membership.tenantId === nextTenantId,
+          ) ?? null;
+
+        return {
+          ...current,
+          activeTenant: nextActiveTenant,
+        };
+      });
+      router.refresh();
+      setSwitching(false);
+    } catch {
+      setError("We couldn't switch gyms.");
+      setSwitching(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+
+    try {
+      await fetch("/api/auth/sign-out", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+    } finally {
+      router.push("/sign-in");
+      router.refresh();
+      setSigningOut(false);
+    }
+  }
+
   return (
     <>
-      <p className="text-xs text-gym-text-muted mb-3">Workspace</p>
-      <div className="rounded-xl border border-gym-border bg-gym-card/70 p-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-gym-text">
-            Iron Jaw Boxing
-          </p>
-          <p className="truncate text-xs text-gym-text-muted mt-1">Owner</p>
-        </div>
-      </div>
-    </>
-  );
-}
+      <p className="mb-3 text-xs text-gym-text-muted">Workspace</p>
 
-function ClerkSidebarFooter() {
-  const { organization } = useOrganization();
-  const { user } = useUser();
-
-  return (
-    <>
-      <p className="text-xs text-gym-text-muted mb-3">Workspace</p>
       <div className="space-y-3">
-        <OrganizationSwitcher
-          hidePersonal
-          afterCreateOrganizationUrl="/onboarding"
-          afterLeaveOrganizationUrl="/onboarding"
-          afterSelectOrganizationUrl="/dashboard"
-          appearance={{
-            baseTheme: dark,
-            elements: {
-              rootBox: "w-full",
-              organizationSwitcherTrigger:
-                "w-full justify-between rounded-xl border border-gym-border bg-gym-card px-3 py-2 text-gym-text hover:bg-gym-bg",
-              organizationPreviewMainIdentifier:
-                "text-sm font-medium text-gym-text",
-              organizationPreviewSecondaryIdentifier:
-                "text-xs text-gym-text-muted",
-            },
-          }}
-        />
-
         <div className="rounded-xl border border-gym-border bg-gym-card/70 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gym-text">
-                {organization?.name ?? "Choose a gym"}
-              </p>
-              <p className="truncate text-xs text-gym-text-muted mt-1">
-                {user?.fullName ??
-                  user?.primaryEmailAddress?.emailAddress ??
-                  "Signed in"}
-              </p>
-            </div>
-            <UserButton
-              afterSignOutUrl="/sign-in"
-              appearance={{ baseTheme: dark }}
+          <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-gym-text-muted">
+            Active gym
+          </label>
+          <div className="relative">
+            <select
+              value={session?.activeTenant?.tenantId ?? ""}
+              onChange={(event) => void handleTenantSwitch(event.target.value)}
+              disabled={
+                switching || !session || session.memberships.length === 0
+              }
+              className="w-full appearance-none rounded-lg border border-gym-border bg-gym-bg px-3 py-2 pr-10 text-sm text-gym-text outline-none transition-colors focus:border-gym-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {session?.memberships.length ? (
+                session.memberships.map((membership) => (
+                  <option key={membership.tenantId} value={membership.tenantId}>
+                    {membership.tenantName}
+                  </option>
+                ))
+              ) : (
+                <option value="">No gyms yet</option>
+              )}
+            </select>
+            <RefreshCw
+              size={14}
+              className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gym-text-muted ${
+                switching ? "animate-spin" : ""
+              }`}
             />
           </div>
+
+          <p className="mt-2 truncate text-xs text-gym-text-muted">
+            {session?.activeTenant?.role ?? "Create a gym to get started"}
+          </p>
         </div>
+
+        <div className="rounded-xl border border-gym-border bg-gym-card/70 p-3">
+          <p className="truncate text-sm font-medium text-gym-text">
+            {session?.user?.fullName ?? session?.user?.email ?? "Signed in"}
+          </p>
+          <p className="mt-1 truncate text-xs text-gym-text-muted">
+            {session?.user?.email ?? "Loading account"}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            disabled={signingOut}
+            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gym-border px-3 py-2 text-sm text-gym-text-secondary transition-colors hover:bg-gym-bg disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <LogOut size={14} />
+            {signingOut ? "Signing out..." : "Sign out"}
+          </button>
+        </div>
+
+        {error ? (
+          <div className="rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-3 py-2 text-xs text-gym-danger">
+            {error}
+          </div>
+        ) : null}
       </div>
     </>
   );
@@ -189,7 +316,7 @@ export default function Sidebar() {
 
         {/* Agents Online */}
         <div className="p-6 border-t border-gym-border">
-          {authEnabled ? <ClerkSidebarFooter /> : <LocalSidebarFooter />}
+          <NativeSidebarFooter />
         </div>
       </aside>
     </>

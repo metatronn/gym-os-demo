@@ -39,31 +39,12 @@ export const DATABASE_URL_UNPOOLED = optionalEnv(
   DATABASE_URL,
 );
 
-// ── Auth (Clerk) ──
-export const CLERK_PUBLISHABLE_KEY = optionalEnv(
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-);
-export const CLERK_SECRET_KEY = optionalEnv("CLERK_SECRET_KEY");
-export const CLERK_WEBHOOK_SECRET = optionalEnv("CLERK_WEBHOOK_SECRET");
-export const CLERK_SIGN_IN_URL = optionalEnv(
-  "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
-  "/sign-in",
-);
-export const CLERK_SIGN_UP_URL = optionalEnv(
-  "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
-  "/sign-up",
-);
-export const CLERK_AFTER_SIGN_IN_URL = optionalEnv(
-  "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL",
-  "/dashboard",
-);
-export const CLERK_AFTER_SIGN_UP_URL = optionalEnv(
-  "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL",
-  "/onboarding",
-);
-export const IS_CLERK_ENABLED = isConfigured(
-  CLERK_PUBLISHABLE_KEY,
-  CLERK_SECRET_KEY,
+// ── Auth ──
+export const AUTH_SECRET = optionalEnv(
+  "AUTH_SECRET",
+  process.env.NODE_ENV === "development"
+    ? "dev-only-auth-secret-change-me-before-production"
+    : "",
 );
 
 // ── App URL ──
@@ -113,7 +94,12 @@ export const INTERNAL_SLACK_WEBHOOK_URL = optionalEnv(
   "INTERNAL_SLACK_WEBHOOK_URL",
 );
 
-// ── Local dev fallback (used when Clerk is not configured) ──
+// ── Local demo seed ──
 export const LOCAL_DEV_TENANT_ID = "org_demo_ironjaw";
 export const LOCAL_DEV_USER_ID = "user_demo_owner";
 export const LOCAL_DEV_ORG_ROLE = "org:admin";
+export const LOCAL_DEV_EMAIL = "owner@ironjawboxing.com";
+export const LOCAL_DEV_PASSWORD = optionalEnv(
+  "LOCAL_DEV_PASSWORD",
+  "gymosdemo",
+);

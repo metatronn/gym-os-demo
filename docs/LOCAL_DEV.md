@@ -10,7 +10,7 @@ GYM OS is designed so that **all development happens locally** against free, loc
 |---------|-----------|------------|--------------|
 | **Database** | Docker Postgres 16 | Neon (serverless Postgres) | `DATABASE_URL` connection string |
 | **Hosting** | `next dev` / `next build && next start` | Vercel | Deployment target only |
-| **Auth** | Clerk dev-mode keys (`pk_test_`, `sk_test_`) | Clerk live keys (`pk_live_`, `sk_live_`) | Env vars only |
+| **Auth** | Auto-login (no config) | Native JWT (`AUTH_SECRET`) | Env vars only |
 | **Payments** | Stripe test mode + `stripe listen` CLI | Stripe live mode + webhook endpoint | Env vars only |
 | **Email** | Console logging / `onboarding@resend.dev` | Resend with verified domain | Env var + DNS |
 | **Background Jobs** | `npx inngest-cli dev` (local server) | Inngest Cloud | Env vars only |
@@ -29,7 +29,6 @@ GYM OS is designed so that **all development happens locally** against free, loc
 
 Optional (install when you reach those features):
 - **Stripe CLI** — `brew install stripe/stripe-cli/stripe` (for webhook testing)
-- **Clerk account** — free dev instance at [clerk.com](https://clerk.com)
 
 ---
 
@@ -93,17 +92,9 @@ npm run db:studio             # Browse data in Drizzle Studio
 
 **Why this works as a Neon replacement:** Neon is Postgres. Same wire protocol, same SQL, same driver. Drizzle generates the same queries. The only Neon-specific feature we'd use (branching per preview deploy) is a Vercel integration — irrelevant for local dev.
 
-### Auth (Clerk)
+### Auth
 
-Clerk doesn't have a local replacement — it's a hosted service even in dev. But their free tier includes **dev-mode instances** that:
-- Work on `localhost` without HTTPS
-- Provide test user accounts
-- Support Organizations (our multi-tenancy model)
-- Have no MAU limits for development
-
-**Setup:** Create a Clerk application at [clerk.com](https://clerk.com), copy the `pk_test_` and `sk_test_` keys into `.env.local`. Enable Organizations in the Clerk dashboard.
-
-**Without Clerk:** The app runs and builds without Clerk keys — you just can't use auth-protected routes. This means you can work on UI, components, and non-auth features without a Clerk account at all.
+No configuration needed for local dev. The app auto-logs you in as the seed user when `AUTH_SECRET` is not set. For production, set `AUTH_SECRET` in Vercel.
 
 ### Payments (Stripe)
 
@@ -176,7 +167,7 @@ All migrations committed to `drizzle/` are portable — they run against local P
 ### Things that work identically
 - All Next.js pages, components, and API routes
 - Drizzle ORM queries (Postgres is Postgres)
-- Clerk auth flow (dev keys work on localhost)
+- Auth flow (auto-login locally, JWT in production)
 - Stripe checkout and webhooks (test mode)
 - Inngest background jobs (local dev server)
 - Tailwind, fonts, all static assets
@@ -219,15 +210,12 @@ Production migration is a configuration exercise. The code stays the same.
 
 **Optional:** Install the Neon-Vercel integration for automatic DB branching per preview deploy.
 
-### Step 3: Clerk Live Keys
+### Step 3: Auth Secret
 
-1. In Clerk Dashboard, switch to the production instance
-2. Copy `pk_live_` and `sk_live_` keys
-3. Set in Vercel env vars (Production scope)
-4. Update redirect URLs to production domain
-5. Set up Clerk webhook endpoint for production URL
+1. Generate a secret: `openssl rand -base64 32`
+2. Set `AUTH_SECRET` in Vercel env vars (Production scope)
 
-**What changes:** `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` env vars.
+**What changes:** `AUTH_SECRET` env var. No external service to configure.
 
 ### Step 4: Stripe Live Mode
 
@@ -268,9 +256,7 @@ Production migration is a configuration exercise. The code stays the same.
 [ ] Migrations applied to Neon production branch
 [ ] Vercel project connected to GitHub repo
 [ ] All env vars set in Vercel Dashboard
-[ ] Clerk production instance configured
-[ ] Clerk redirect URLs updated to production domain
-[ ] Clerk webhook endpoint set
+[ ] AUTH_SECRET set in production
 [ ] Stripe live mode activated, business verified
 [ ] Stripe products/prices created in live mode
 [ ] Stripe webhook endpoint configured for production URL

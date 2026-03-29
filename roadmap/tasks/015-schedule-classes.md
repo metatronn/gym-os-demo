@@ -45,7 +45,7 @@ Update `src/app/schedule/page.tsx`:
 
 ### 4. Instructor Management
 
-For now, instructors are free-text names (matching the mock data pattern). A future task could link them to Clerk org members. No separate instructors table needed yet.
+For now, instructors are free-text names (matching the mock data pattern). A future task could link them to organization members. No separate instructors table needed yet.
 
 ## Acceptance Criteria
 

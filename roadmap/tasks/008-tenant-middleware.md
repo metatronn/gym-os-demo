@@ -2,7 +2,7 @@
 
 **Phase:** 1 — Foundation
 **Priority:** Critical
-**Depends on:** [006](./006-clerk-auth.md), [007](./007-db-schema.md)
+**Depends on:** [006](./006-auth.md), [007](./007-db-schema.md)
 **Blocks:** [009](./009-onboarding-flow.md), [013](./013-members-crud.md), [014](./014-leads-pipeline.md)
 
 ---
@@ -195,7 +195,7 @@ src/
 
 ## Acceptance Criteria
 
-- `tenantDb()` returns a scoped context with `tenantId` from Clerk
+- `tenantDb()` returns a scoped context with `tenantId` from the JWT session
 - Every query helper automatically filters by `tenantId`
 - CRUD pattern is established and documented for all future entities
 - Subscription status check helper exists and works

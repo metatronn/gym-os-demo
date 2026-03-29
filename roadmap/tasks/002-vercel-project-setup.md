@@ -58,10 +58,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'img.clerk.com',  // Clerk user avatars
-      },
+      // Add remote image hostnames here as needed (e.g., avatar providers)
     ],
   },
 };

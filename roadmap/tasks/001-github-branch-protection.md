@@ -47,7 +47,7 @@ Create these labels for PR/issue triage:
 | `bugfix` | `#D93F0B` | Bug fix |
 | `db` | `#FBCA04` | Database / migration |
 | `billing` | `#B60205` | Stripe / payments |
-| `auth` | `#5319E7` | Authentication / Clerk |
+| `auth` | `#5319E7` | Authentication |
 | `email` | `#F9D0C4` | Resend / transactional email |
 
 ### 5. CODEOWNERS (Optional)

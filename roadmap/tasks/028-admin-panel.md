@@ -18,7 +18,7 @@ Build an internal admin panel for the GYM OS team to view all tenants, monitor s
 Create `src/app/admin/layout.tsx`:
 
 - Check that the signed-in user's email matches an allowlist (e.g., `@gymos.app` domain)
-- Or use a Clerk metadata flag: `publicMetadata.role === 'platform_admin'`
+- Or use a `platform_role` column on the `users` table: `platform_role === 'platform_admin'`
 - Return 404 for non-admins (don't reveal the route exists)
 
 ### 2. Admin Dashboard
@@ -48,7 +48,7 @@ Create `src/app/admin/layout.tsx`:
 - Subscription status + Stripe link
 - Member count, lead count
 - Activity log
-- Impersonate button (via Clerk impersonation — carefully gated)
+- Impersonate button (re-issue JWT with target tenant's orgId — carefully gated)
 
 ### 5. Metrics
 

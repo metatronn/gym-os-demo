@@ -1,6 +1,7 @@
 export * from "./tenants";
 export * from "./users";
 export * from "./staff";
+export * from "./auth";
 export * from "./members";
 export * from "./leads";
 export * from "./classes";

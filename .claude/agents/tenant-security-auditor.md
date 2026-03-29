@@ -21,8 +21,8 @@ In a multi-tenant SaaS, a single cross-tenant data leak is a company-ending even
 - [ ] No query uses a raw ID without also scoping to tenant
 
 ### Authentication
-- [ ] All app routes require authentication (Clerk middleware)
-- [ ] Webhook routes verify signatures (Stripe: `constructEvent`, Clerk: `svix.verify`)
+- [ ] All app routes require authentication (JWT middleware)
+- [ ] Webhook routes verify signatures (Stripe: `constructEvent`)
 - [ ] Admin routes check role, not just auth
 - [ ] No route returns data before checking auth
 

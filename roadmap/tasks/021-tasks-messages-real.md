@@ -35,7 +35,7 @@ Replace mock tasks and messages data with database-backed CRUD. Tasks are intern
 - Keep existing layout (grouped by status or priority)
 - "New Task" button → modal form
 - Drag-and-drop status change (or dropdown)
-- Assignment to staff members (from Clerk org members)
+- Assignment to staff members (from organization members)
 - Due date with overdue highlighting
 
 ### 2. Messages

@@ -1,8 +1,8 @@
 # GYM OS
 
-AI-native operating system for gyms and wellness businesses. Next.js 14 SaaS — converting from a static demo into a production multi-tenant platform with Clerk auth, Neon Postgres, Stripe billing, Resend email, and Inngest background jobs.
+AI-native operating system for gyms and wellness businesses. Next.js 14 SaaS — converting from a static demo into a production multi-tenant platform with native JWT auth, Neon Postgres, Stripe billing, Resend email, and Inngest background jobs.
 
-**Stack:** Next.js 14 · React 18 · TypeScript · Tailwind CSS · Drizzle ORM · Neon Postgres · Clerk · Stripe · Resend · Inngest · Vercel
+**Stack:** Next.js 14 · React 18 · TypeScript · Tailwind CSS · Drizzle ORM · Neon Postgres · Stripe · Resend · Inngest · Vercel
 
 ## Find Your Guide
 
@@ -26,7 +26,7 @@ AI-native operating system for gyms and wellness businesses. Next.js 14 SaaS —
 - **Secrets:** NEVER commit `.env` files. All secrets go in Vercel env vars. Use `src/lib/env.ts` for runtime validation.
 - **Migrations:** NEVER modify committed migration files. Create NEW ones.
 - **Stripe webhooks:** ALWAYS verify signatures with `stripe.webhooks.constructEvent()` before processing.
-- **Auth:** All app routes require Clerk auth. Only `/sign-in`, `/sign-up`, `/api/webhooks/*`, and `/api/health` are public.
+- **Auth:** All app routes require auth. Only `/sign-in`, `/sign-up`, `/api/webhooks/stripe`, `/api/auth/*`, and `/api/health` are public.
 - **Mock data:** `src/lib/data.ts` is the legacy mock file. As features go live, remove the corresponding mock data. Do not add to it.
 
 ## Quick Reference

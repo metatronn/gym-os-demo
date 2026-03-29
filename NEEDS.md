@@ -53,32 +53,32 @@ Install the **Neon Vercel Integration** from the Vercel marketplace — it autom
 
 ---
 
-## 3. Clerk (Authentication & Multi-Tenancy)
+## 3. Authentication (Native JWT)
 
 | Field | Value |
 |-------|-------|
-| **Service** | [clerk.com](https://clerk.com) |
-| **Plan needed** | Free tier (10,000 MAU) to start |
-| **Account** | Sign up, create an application |
+| **Service** | None — built-in |
+| **Plan needed** | N/A (no external service) |
+| **Dependencies** | `jose` (JWT signing/verification), `bcryptjs` (password hashing) |
+
+### How It Works
+Authentication is handled natively with JWT sessions. Passwords are hashed with bcryptjs and stored in the database. Sessions are signed JWTs containing `userId` and `orgId`, verified on every request using `jose`.
+
+No external auth service, no webhook setup, no redirect URL configuration.
 
 ### Setup Steps
-1. Create a Clerk application (e.g., `GYM OS`)
-2. Enable **Organizations** (this is how we model tenants / gyms)
-3. Configure sign-in methods: Email + Password, Google OAuth
-4. Set up redirect URLs:
-   - **Production:** `https://gym-os-demo.vercel.app/dashboard`
-   - **Development:** `http://localhost:3000/dashboard`
-5. Note the API keys from the Clerk dashboard
+1. Generate an auth secret: `openssl rand -base64 32`
+2. Set `AUTH_SECRET` in your environment (`.env.local` for dev, Vercel env vars for production)
+
+For local development, `AUTH_SECRET` is optional — when unset, the app auto-logs you in as the seed user.
 
 ### Secrets Produced
 ```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
-CLERK_SECRET_KEY=sk_live_xxxxx
-CLERK_WEBHOOK_SECRET=whsec_xxxxx
+AUTH_SECRET=<min 32 bytes, generated with openssl rand -base64 32>
 ```
 
-### Clerk Organization = Gym Tenant
-Each gym that signs up creates a Clerk Organization. All data is scoped to the org ID (`orgId`). Staff members are organization members with roles (`admin`, `coach`, `staff`).
+### Organization = Gym Tenant
+Each gym that signs up creates an organization in the database. All data is scoped to the org ID (`orgId`). Staff members are organization members with roles (`admin`, `coach`, `staff`).
 
 ---
 
@@ -238,14 +238,8 @@ Copy this to `.env.local` for development. Fill in real values from each service
 DATABASE_URL=
 DATABASE_URL_UNPOOLED=
 
-# ── Auth (Clerk) ──
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-CLERK_WEBHOOK_SECRET=
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
+# ── Auth (Native JWT) ──
+AUTH_SECRET=
 
 # ── Payments (Stripe) ──
 STRIPE_SECRET_KEY=
@@ -297,8 +291,7 @@ INTERNAL_SLACK_WEBHOOK_URL=
    - Vercel requires DNS-only mode for its SSL provisioning to work
 4. **Add Resend sending domain records** (DKIM, SPF, DMARC) for `mail.gymos.app` or `notifications.gymos.app`
 5. **Add it in Vercel** project settings → Domains → `app.gymos.app`
-6. **Update Clerk** redirect URLs to use the new domain
-7. **Update Stripe** webhook URL to use the new domain
+6. **Update Stripe** webhook URL to use the new domain
 
 ### Why Cloudflare
 - **At-cost domain pricing** — no registrar markup, no surprise renewal hikes

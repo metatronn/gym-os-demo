@@ -23,7 +23,7 @@
 Vercel env vars have three scopes: Production, Preview, Development. Set each appropriately:
 
 - **Stripe keys:** `sk_live_*` for Production, `sk_test_*` for Preview/Development
-- **Clerk keys:** Live keys for Production, test keys for Preview/Development
+- **Auth secret:** `AUTH_SECRET` — same value for all environments (used to sign/verify JWTs)
 - **Database:** Neon production branch for Production, dev branch for Preview/Development (auto-managed by Neon integration)
 
 ## Rules

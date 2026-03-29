@@ -2,14 +2,14 @@
 
 **Phase:** 5 — Polish & Hardening
 **Priority:** Medium
-**Depends on:** [006](./006-clerk-auth.md), [008](./008-tenant-middleware.md), [010](./010-stripe-setup.md), [018](./018-slack-integration.md)
+**Depends on:** [006](./006-auth.md), [008](./008-tenant-middleware.md), [010](./010-stripe-setup.md), [018](./018-slack-integration.md)
 **Blocks:** Nothing (leaf task)
 
 ---
 
 ## Objective
 
-Wire the settings page to real data. Each tab should read from and write to the tenant's configuration in the database and connected services (Clerk, Stripe).
+Wire the settings page to real data. Each tab should read from and write to the tenant's configuration in the database and connected services (Stripe, etc.).
 
 ## Steps
 
@@ -42,16 +42,16 @@ Wire the settings page to real data. Each tab should read from and write to the 
 
 ### 5. Staff & Roles Tab
 
-- Pull staff list from Clerk Organization members
+- Pull staff list from the `org_members` table
 - Show name, role, email for each member
-- "Invite Staff" button → Clerk's invite flow
-- Role management via Clerk (admin, coach, staff)
+- "Invite Staff" button → invite flow via email (generates a sign-up link with org pre-selected)
+- Role management via the `org_members` table (admin, coach, staff)
 - Admin can change roles but not remove themselves
 
 ### 6. Security Tab
 
-- Link to Clerk's security settings (password change, 2FA)
-- Session management (list active sessions)
+- Password change form (verify current password, set new one via bcrypt)
+- Session management (list active JWT sessions)
 - Activity log (recent sign-ins)
 
 ### 7. Admin-Only Access
@@ -72,7 +72,7 @@ Coaches and staff should not access settings.
 
 - Gym profile saves to database
 - Notification preferences save to `tenants.settings`
-- Staff list pulls from Clerk org members
+- Staff list pulls from organization members in the database
 - Slack webhook configuration works (from Task 018)
 - Stripe status is displayed
 - Settings page is admin-only

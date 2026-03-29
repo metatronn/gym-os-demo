@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { getTenantSubscription } from "@/lib/subscription";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { userId, orgId } = await getAuthContext();
+  const { orgId, userId } = await requireAuth({ requireOrg: false });
 
-  if (!userId) {
-    return NextResponse.json({ subscription: null }, { status: 401 });
+  const rl = consumeRateLimit(`subscription:${userId}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   if (!orgId) {

@@ -1,3 +1,4 @@
+import { hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "./index";
 import {
@@ -14,19 +15,23 @@ import {
   users,
 } from "./schema";
 import {
+  LOCAL_DEV_EMAIL as DEMO_EMAIL,
   LOCAL_DEV_ORG_ROLE as DEMO_ORG_ROLE,
+  LOCAL_DEV_PASSWORD as DEMO_PASSWORD,
   LOCAL_DEV_TENANT_ID as DEMO_TENANT_ID,
   LOCAL_DEV_USER_ID as DEMO_USER_ID,
 } from "../lib/env";
 import {
-  activityEvents as mockActivity,
   classes as mockClasses,
   leads as mockLeads,
   members as mockMembers,
-  messages as mockMessages,
   payments as mockPayments,
-  tasks as mockTasks,
 } from "../lib/data";
+import {
+  activityEvents as seedActivityEvents,
+  messages as seedMessages,
+  tasks as seedTasks,
+} from "./seed-fixtures";
 
 const DEMO_MEMBERSHIP_ID = "mem_demo_owner_membership";
 const DEMO_STATION_IDS = [
@@ -54,6 +59,7 @@ function parseDate(value: string | null | undefined) {
 
 async function seed() {
   console.log("Seeding database...");
+  const passwordHash = await hash(DEMO_PASSWORD, 12);
 
   await db
     .insert(tenants)
@@ -79,7 +85,9 @@ async function seed() {
     .insert(users)
     .values({
       id: DEMO_USER_ID,
-      email: "owner@ironjawboxing.com",
+      email: DEMO_EMAIL,
+      passwordHash,
+      emailVerifiedAt: new Date(),
       firstName: "Javier",
       lastName: "Laval",
       fullName: "Javier Laval",
@@ -87,7 +95,9 @@ async function seed() {
     .onConflictDoUpdate({
       target: users.id,
       set: {
-        email: "owner@ironjawboxing.com",
+        email: DEMO_EMAIL,
+        passwordHash,
+        emailVerifiedAt: new Date(),
         firstName: "Javier",
         lastName: "Laval",
         fullName: "Javier Laval",
@@ -102,17 +112,19 @@ async function seed() {
       tenantId: DEMO_TENANT_ID,
       userId: DEMO_USER_ID,
       role: DEMO_ORG_ROLE,
-      email: "owner@ironjawboxing.com",
+      email: DEMO_EMAIL,
       name: "Javier Laval",
       status: "active",
+      acceptedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: staffMemberships.id,
       set: {
         role: DEMO_ORG_ROLE,
-        email: "owner@ironjawboxing.com",
+        email: DEMO_EMAIL,
         name: "Javier Laval",
         status: "active",
+        acceptedAt: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -224,7 +236,7 @@ async function seed() {
   );
 
   await db.insert(tasks).values(
-    mockTasks.map((task) => ({
+    seedTasks.map((task) => ({
       id: task.id,
       tenantId: DEMO_TENANT_ID,
       title: task.title,
@@ -237,7 +249,7 @@ async function seed() {
   );
 
   await db.insert(messages).values(
-    mockMessages.map((message) => ({
+    seedMessages.map((message) => ({
       id: message.id,
       tenantId: DEMO_TENANT_ID,
       contactName: message.contactName,
@@ -252,7 +264,7 @@ async function seed() {
   );
 
   await db.insert(activityEvents).values(
-    mockActivity.map((event) => ({
+    seedActivityEvents.map((event) => ({
       id: event.id,
       tenantId: DEMO_TENANT_ID,
       type: event.type,

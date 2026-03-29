@@ -19,8 +19,8 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 export const tenants = pgTable(
   "tenants",
   {
-    // Clerk Organization ID — the universal tenant key
-    id: text("id").primaryKey(), // e.g. "org_2abc..."
+    id: text("id").primaryKey(),
+    legacyClerkId: text("legacy_clerk_id").unique(),
 
     name: text("name").notNull(),
     slug: text("slug").unique(),

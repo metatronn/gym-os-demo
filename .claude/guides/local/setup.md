@@ -10,7 +10,6 @@
 
 Optional (install when you need them):
 - Stripe CLI (`brew install stripe/stripe-cli/stripe`) — for webhook testing
-- Clerk dev account ([clerk.com](https://clerk.com)) — for auth features
 
 ## Quick Start
 

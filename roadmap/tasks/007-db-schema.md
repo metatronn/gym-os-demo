@@ -2,14 +2,14 @@
 
 **Phase:** 1 — Foundation
 **Priority:** Critical
-**Depends on:** [005](./005-neon-database.md), [006](./006-clerk-auth.md)
+**Depends on:** [005](./005-neon-database.md), [006](./006-auth.md)
 **Blocks:** [008](./008-tenant-middleware.md), [013](./013-members-crud.md), [014](./014-leads-pipeline.md)
 
 ---
 
 ## Objective
 
-Design and create the core database schema. Every table is tenant-scoped via `tenant_id` (Clerk `orgId`). The schema mirrors and extends the existing mock data types in `src/lib/data.ts`.
+Design and create the core database schema. Every table is tenant-scoped via `tenant_id` (the organization ID from the JWT session). The schema mirrors and extends the existing mock data types in `src/lib/data.ts`.
 
 ## Steps
 
@@ -36,7 +36,7 @@ src/db/schema/
 import { pgTable, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
 
 export const tenants = pgTable('tenants', {
-  id: text('id').primaryKey(),                    // Clerk orgId
+  id: text('id').primaryKey(),                    // Organization ID
   name: text('name').notNull(),
   slug: text('slug').unique(),
   stripeCustomerId: text('stripe_customer_id'),

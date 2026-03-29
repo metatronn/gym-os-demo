@@ -4,28 +4,31 @@
 **Confidence:** Medium (will change as features go live)
 
 ## Summary
-The app currently uses hardcoded mock data in `src/lib/data.ts`. Each page will migrate from mock to real database data during Phase 3. The file should be deleted when all pages are migrated.
+Most core pages now read from the database. The remaining live mock/demo content is concentrated in the reports page, the settings plans fallback, and the command center demo UI. Seed-only fixtures now live outside the app-facing reports fallback file.
 
 **Key Facts:**
-- All mock data lives in `src/lib/data.ts`
-- Types defined there: Member, Lead, ClassSession, Payment, Task, Message, ActivityEvent, DashboardKPIs
-- Database schema (Task 007) mirrors these types with added `tenant_id`
-- Seed script will populate test tenant with identical mock data
+- `src/lib/data.ts` now only holds the reports fallback dataset: `members`, `leads`, `classes`, and `payments`
+- Seed-only fixtures for `tasks`, `messages`, and `activityEvents` live in `src/db/seed-fixtures.ts`
+- Dead settings mock staff/security data was removed; the only remaining settings mock is the plans fallback when Stripe is disabled
+- The command center is still a demo surface with canned quick actions and static responses
+- The file should still be deleted once reports are database-backed and shared types move elsewhere
 
-**File Pointer:** `src/lib/data.ts`
+**File Pointers:** `src/lib/data.ts`, `src/db/seed-fixtures.ts`, `src/components/CommandPanel.tsx`
 
 ## Migration Plan
 | Page | Mock Data Used | Migrated In |
 |------|---------------|-------------|
-| Dashboard | `dashboardKPIs`, `activityEvents` | Task 019 |
-| Members | `members` | Task 013 |
-| Leads | `leads` | Task 014 |
-| Schedule | `classes` | Task 015 |
-| Floor Plan | `classes` (subset) | Task 016 |
-| Billing | `payments` | Task 012 |
-| Tasks | `tasks` | Task 021 |
-| Messages | `messages` | Task 021 |
-| Reports | All aggregations | Task 025 |
+| Dashboard | None in runtime; seed fixtures remain for local dev | Task 019 complete |
+| Members | None in runtime | Task 013 complete |
+| Leads | None in runtime | Task 014 complete |
+| Schedule | None in runtime | Task 015 complete |
+| Floor Plan | None in runtime; visual layout is static config, not mock records | Task 016 complete |
+| Billing | None in runtime | Task 012 complete |
+| Tasks | None in runtime; local seed fixtures remain | Task 021 complete |
+| Messages | None in runtime; local seed fixtures remain | Task 021 complete |
+| Settings | `mockPlans` fallback when Stripe is disabled | Task 022 partial |
+| Reports | `members`, `leads`, `payments`, `classes` via `buildReportData()` | Task 025 |
+| Command Center | Static quick actions, canned responses, fake delays/voice input | Task 037 |
 
 ## Related Topics
 - [Multi-tenancy](../patterns/multi-tenancy.md)

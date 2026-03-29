@@ -6,6 +6,9 @@ import TrialExpiringEmail from "@/emails/trial-expiring";
 import TrialExpiredEmail from "@/emails/trial-expired";
 import PaymentFailedEmail from "@/emails/payment-failed";
 import DailyDigestEmail from "@/emails/daily-digest";
+import VerifyEmail from "@/emails/verify-email";
+import PasswordResetEmail from "@/emails/password-reset";
+import StaffInviteEmail from "@/emails/staff-invite";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +35,31 @@ type EmailPayload =
         ownerEmail: string;
         stats: { newLeads: number; newMembers: number; revenue: number };
       };
+    }
+  | {
+      type: "verify-email";
+      data: {
+        email: string;
+        name: string;
+        verifyUrl: string;
+      };
+    }
+  | {
+      type: "password-reset";
+      data: {
+        email: string;
+        name: string;
+        resetUrl: string;
+      };
+    }
+  | {
+      type: "staff-invite";
+      data: {
+        email: string;
+        invitedByName: string;
+        inviteUrl: string;
+        role: string;
+      };
     };
 
 export type { EmailPayload };
@@ -57,11 +85,28 @@ function subjectFor(payload: EmailPayload): string {
       return "Action required: payment failed";
     case "daily-digest":
       return `${payload.data.gymName} — Daily Digest`;
+    case "verify-email":
+      return "Verify your GYM OS email";
+    case "password-reset":
+      return "Reset your GYM OS password";
+    case "staff-invite":
+      return "You’ve been invited to join a GYM OS workspace";
   }
 }
 
 function recipientFor(payload: EmailPayload): string {
-  return payload.data.ownerEmail;
+  switch (payload.type) {
+    case "welcome":
+    case "trial-expiring":
+    case "trial-expired":
+    case "payment-failed":
+    case "daily-digest":
+      return payload.data.ownerEmail;
+    case "verify-email":
+    case "password-reset":
+    case "staff-invite":
+      return payload.data.email;
+  }
 }
 
 function reactComponentFor(payload: EmailPayload): React.ReactElement {
@@ -98,6 +143,22 @@ function reactComponentFor(payload: EmailPayload): React.ReactElement {
           year: "numeric",
         }),
         stats: payload.data.stats,
+      });
+    case "verify-email":
+      return React.createElement(VerifyEmail, {
+        name: payload.data.name,
+        verifyUrl: payload.data.verifyUrl,
+      });
+    case "password-reset":
+      return React.createElement(PasswordResetEmail, {
+        name: payload.data.name,
+        resetUrl: payload.data.resetUrl,
+      });
+    case "staff-invite":
+      return React.createElement(StaffInviteEmail, {
+        invitedByName: payload.data.invitedByName,
+        inviteUrl: payload.data.inviteUrl,
+        role: payload.data.role,
       });
   }
 }

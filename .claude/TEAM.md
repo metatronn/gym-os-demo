@@ -60,7 +60,7 @@
 
 ### Phase 1 — Foundation (Tasks 005-009)
 1. `saas-infra-engineer` — Database setup (005)
-2. `/nextjs-app-router` — Clerk integration, middleware, layouts (006, 008)
+2. `/nextjs-app-router` — Auth integration, middleware, layouts (006, 008)
 3. `gym-owner` perspective — Review onboarding flow design (009)
 4. `saas-skeptic` perspective — "Would Rita complete this onboarding?"
 5. `/verify-feature` — Verify auth + tenant isolation works end-to-end

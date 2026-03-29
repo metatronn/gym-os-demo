@@ -22,7 +22,7 @@ Go through every query, server action, and API route:
 - [ ] Every `DELETE` includes `WHERE tenant_id = ? AND id = ?`
 - [ ] No API route accepts a `tenantId` parameter from the client (always from auth)
 - [ ] No route renders data without checking auth first
-- [ ] Webhook routes verify signatures (Stripe, Clerk)
+- [ ] Webhook routes verify signatures (Stripe)
 
 Write a simple integration test that:
 1. Creates two tenants
@@ -46,8 +46,8 @@ export const ratelimit = new Ratelimit({
 
 Apply to:
 - API routes (100/min per tenant)
-- Auth routes (10/min per IP — already handled by Clerk)
-- Webhook routes (exempt — they're from Stripe/Clerk)
+- Auth routes (10/min per IP — rate-limit sign-in/sign-up endpoints)
+- Webhook routes (exempt — they're from Stripe)
 
 ### 3. Security Headers
 
@@ -76,11 +76,12 @@ async headers() {
 
 ### 5. Webhook Signature Verification
 
-Verify both webhook routes have proper signature checking:
+Verify the Stripe webhook route has proper signature checking:
 - Stripe: `stripe.webhooks.constructEvent()` (Task 011)
-- Clerk: `svix.verify()` (Task 009)
 
-Both should return 400 on invalid signature — never process unverified payloads.
+It should return 400 on invalid signature — never process unverified payloads.
+
+**Note:** Native auth does not use external webhooks, so no additional signature verification is needed for auth events.
 
 ### 6. Environment Variable Audit
 

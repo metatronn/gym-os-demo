@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
+import localFont from "next/font/local";
 import "./globals.css";
 import AppFrame from "@/components/AppFrame";
-import { IS_CLERK_ENABLED } from "@/lib/env";
 
-const inter = Inter({ subsets: ["latin"] });
+const geist = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist",
+});
 
 export const metadata: Metadata = {
   title: "GYM OS | AI Operating System for Gyms",
@@ -19,18 +19,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const app = <AppFrame>{children}</AppFrame>;
-
   return (
     <html lang="en">
       <body
-        className={`${inter.className} bg-gym-bg text-gym-text antialiased`}
+        className={`${geist.className} bg-gym-bg text-gym-text antialiased`}
       >
-        {IS_CLERK_ENABLED ? (
-          <ClerkProvider appearance={{ baseTheme: dark }}>{app}</ClerkProvider>
-        ) : (
-          app
-        )}
+        <AppFrame>{children}</AppFrame>
       </body>
     </html>
   );

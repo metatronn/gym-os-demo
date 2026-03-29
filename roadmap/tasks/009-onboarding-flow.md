@@ -2,14 +2,14 @@
 
 **Phase:** 1 — Foundation
 **Priority:** High
-**Depends on:** [006](./006-clerk-auth.md), [008](./008-tenant-middleware.md)
+**Depends on:** [006](./006-auth.md), [008](./008-tenant-middleware.md)
 **Blocks:** [010](./010-stripe-setup.md)
 
 ---
 
 ## Objective
 
-Build the flow a new gym owner experiences: sign up → create their gym (Clerk org) → land on the dashboard with a 14-day trial started automatically.
+Build the flow a new gym owner experiences: sign up → create their gym (organization) → land on the dashboard with a 14-day trial started automatically.
 
 ## Steps
 
@@ -17,43 +17,37 @@ Build the flow a new gym owner experiences: sign up → create their gym (Clerk 
 
 Create `src/app/onboarding/page.tsx`:
 
-The user hits this page after sign-up (configured in Clerk redirect URLs). It should:
+The user hits this page after sign-up (redirected by auth middleware if no org exists). It should:
 
 1. Check if the user already has an org → redirect to `/dashboard`
 2. Show a simple form: **Gym Name** (required), **Location** (optional)
 3. On submit:
-   - Create a Clerk Organization via the Clerk API
-   - Set the user as the active org
+   - Call a server action / API route to create the organization and tenant row
+   - Re-issue the JWT with the new `orgId` claim
    - Redirect to `/dashboard`
 
 ```tsx
 'use client';
 
-import { useOrganizationList, useOrganization } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function OnboardingPage() {
-  const { createOrganization } = useOrganizationList();
-  const { organization } = useOrganization();
   const router = useRouter();
   const [gymName, setGymName] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Already has an org — skip onboarding
-  if (organization) {
-    router.replace('/dashboard');
-    return null;
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const org = await createOrganization!({ name: gymName });
-      // Clerk webhook will fire organization.created → creates tenant row + trial
-      // Small delay to let webhook process, then redirect
-      await new Promise(r => setTimeout(r, 1000));
+      const res = await fetch('/api/auth/create-org', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: gymName }),
+      });
+      if (!res.ok) throw new Error('Failed to create organization');
+      // The API route creates the tenant row + trial and re-issues the JWT
       router.push('/dashboard');
     } catch (err) {
       setLoading(false);
@@ -93,44 +87,37 @@ export default function OnboardingPage() {
 }
 ```
 
-### 2. Clerk Webhook → Tenant Creation
+### 2. Tenant Creation API Route
 
-In `src/app/api/webhooks/clerk/route.ts`, handle `organization.created`:
+Create `src/app/api/auth/create-org/route.ts` to handle organization creation:
 
 ```ts
 import { db } from '@/db';
 import { tenants } from '@/db/schema';
-import { headers } from 'next/headers';
-import { Webhook } from 'svix';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
-  const body = await req.text();
-  const svixHeaders = {
-    'svix-id': headers().get('svix-id')!,
-    'svix-timestamp': headers().get('svix-timestamp')!,
-    'svix-signature': headers().get('svix-signature')!,
-  };
+  const { userId } = await requireAuth();
+  const { name } = await req.json();
 
-  const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET!);
-  const event = wh.verify(body, svixHeaders) as any;
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
-  switch (event.type) {
-    case 'organization.created': {
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-      await db.insert(tenants).values({
-        id: event.data.id,
-        name: event.data.name,
-        slug: event.data.slug,
-        subscriptionStatus: 'trialing',
-        trialEndsAt,
-      });
-      break;
-    }
-  }
+  const [tenant] = await db.insert(tenants).values({
+    id: crypto.randomUUID(),
+    name,
+    slug,
+    subscriptionStatus: 'trialing',
+    trialEndsAt,
+  }).returning();
 
-  return new Response('ok');
+  // Add the user as an admin member of the new organization
+  // Re-issue JWT with orgId and orgRole claims
+  // Set the new session cookie
+
+  return new Response(JSON.stringify({ id: tenant.id }), { status: 201 });
 }
 ```
 
@@ -171,8 +158,8 @@ In the main layout, if the user is signed in but has no org, redirect to `/onboa
 ## Acceptance Criteria
 
 - New user signs up → lands on `/onboarding`
-- Entering gym name creates a Clerk Organization
-- Clerk webhook creates a `tenants` row with 14-day trial
+- Entering gym name creates an organization via the tenant creation API
+- API route creates a `tenants` row with 14-day trial
 - User is redirected to `/dashboard` with active trial
 - Trial banner shows days remaining
 - Expired trial shows upgrade prompt
