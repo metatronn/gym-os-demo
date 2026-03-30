@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { tenants } from "@/db/schema";
@@ -16,6 +17,18 @@ export type BillingInvoiceSummary = {
   date: string;
   hostedInvoiceUrl: string | null;
   invoicePdfUrl: string | null;
+};
+
+export type StripeMembershipPlan = {
+  id: string;
+  productId: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+  unitAmount: number | null;
+  currency: string | null;
+  interval: string | null;
+  trialDays: number | null;
 };
 
 async function getTenantRecord(tenantId: string) {
@@ -164,4 +177,65 @@ export async function createPortalSessionUrl(tenantId: string) {
   }
 
   return session.url;
+}
+
+function parseTrialDays(
+  price: Stripe.Price,
+  product: Stripe.Product | Stripe.DeletedProduct,
+) {
+  const productMetadata = "deleted" in product ? {} : product.metadata;
+  const trialSource =
+    price.metadata?.trial_days || productMetadata?.trial_days || null;
+
+  if (!trialSource) {
+    return null;
+  }
+
+  const parsed = Number(trialSource);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+export async function listStripeMembershipPlans(): Promise<
+  StripeMembershipPlan[]
+> {
+  if (!isStripeEnabled) {
+    return [];
+  }
+
+  try {
+    const prices = await stripe.prices.list({
+      active: true,
+      expand: ["data.product"],
+      limit: 100,
+      type: "recurring",
+    });
+
+    return prices.data
+      .filter((price) => {
+        const product = price.product;
+        return typeof product !== "string" && !("deleted" in product);
+      })
+      .map((price) => {
+        const product = price.product as Stripe.Product;
+
+        return {
+          id: price.id,
+          productId: product.id,
+          name: product.name,
+          description: product.description,
+          active: price.active && product.active,
+          unitAmount: price.unit_amount,
+          currency: price.currency ?? null,
+          interval: price.recurring?.interval ?? null,
+          trialDays: parseTrialDays(price, product),
+        };
+      })
+      .sort((left, right) => {
+        const leftAmount = left.unitAmount ?? Number.MAX_SAFE_INTEGER;
+        const rightAmount = right.unitAmount ?? Number.MAX_SAFE_INTEGER;
+        return leftAmount - rightAmount || left.name.localeCompare(right.name);
+      });
+  } catch {
+    return [];
+  }
 }

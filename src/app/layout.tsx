@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import AppFrame from "@/components/AppFrame";
+import { PostHogProvider } from "@/components/PostHogProvider";
+import SentryScopeLoader from "@/components/SentryScopeLoader";
 
-const geist = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist",
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "GYM OS | AI Operating System for Gyms",
@@ -20,11 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
-        className={`${geist.className} bg-gym-bg text-gym-text antialiased`}
+        className={`${inter.className} bg-background text-foreground antialiased`}
       >
-        <AppFrame>{children}</AppFrame>
+        <PostHogProvider>
+          <SentryScopeLoader />
+          <AppFrame>{children}</AppFrame>
+        </PostHogProvider>
       </body>
     </html>
   );

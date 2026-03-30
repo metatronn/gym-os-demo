@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { passwordResets, users } from "@/db/schema";
 import { clearSessionCookie } from "@/lib/auth-session";
 import { jsonError, validateJsonMutation } from "@/lib/auth-api";
+import { recordAuthActivity, revokeOtherAuthSessions } from "@/lib/auth-store";
 import { isValidPassword } from "@/lib/auth-utils";
 
 type ResetPasswordBody = {
@@ -78,6 +79,14 @@ export async function POST(request: Request) {
   const response = NextResponse.json({
     ok: true,
     redirectTo: "/sign-in",
+  });
+  await revokeOtherAuthSessions(resetRecord.userId, null);
+  await recordAuthActivity({
+    userId: resetRecord.userId,
+    tenantId: null,
+    type: "password-reset",
+    description: "Reset account password",
+    request,
   });
   clearSessionCookie(response);
   return response;

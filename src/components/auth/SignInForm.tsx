@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SignInForm() {
   const router = useRouter();
@@ -57,70 +60,59 @@ export default function SignInForm() {
       footer={
         <p>
           New here?{" "}
-          <Link href="/sign-up" className="text-gym-accent hover:underline">
-            Create an account
-          </Link>
+          <Button variant="link" asChild className="h-auto p-0">
+            <Link href="/sign-up">Create an account</Link>
+          </Button>
         </p>
       }
     >
       {searchParams.get("verified") === "1" ? (
-        <div className="mb-5 rounded-xl border border-gym-primary/20 bg-gym-primary/10 px-4 py-3 text-sm text-gym-accent">
+        <div className="mb-5 rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
           Your email is verified. You can sign in now.
         </div>
       ) : null}
 
       {error ? (
-        <div className="mb-5 rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Email
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="owner@ironjawboxing.com"
           />
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <label className="block text-sm font-medium text-gym-text-secondary">
-              Password
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-gym-accent hover:underline"
-            >
-              Forgot password?
-            </Link>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="password">Password</Label>
+            <Button variant="link" asChild className="h-auto p-0 text-xs">
+              <Link href="/forgot-password">Forgot password?</Link>
+            </Button>
           </div>
-          <input
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
             required
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Enter your password"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gym-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gym-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Signing in..." : "Sign in"}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   );

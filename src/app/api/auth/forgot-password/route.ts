@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     return jsonError(400, "Enter a valid email address");
   }
 
-  const rateLimit = consumeRateLimit(`forgot-password:${email}`, {
+  const rateLimit = await consumeRateLimit(`forgot-password:${email}`, {
     limit: 3,
     windowMs: 60 * 60 * 1000,
   });

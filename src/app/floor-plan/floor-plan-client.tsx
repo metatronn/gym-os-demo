@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { floorStations } from "./stations";
-import { ChevronDown, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import {
   bookStation,
   cancelBooking,
@@ -13,6 +13,14 @@ import {
 } from "./actions";
 import FloorPlanGrid from "./floor-plan-grid";
 import FloorPlanSidebar from "./floor-plan-sidebar";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type FloorBookingRow = {
   id: string;
@@ -86,7 +94,6 @@ export default function FloorPlanClient({
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [moveTargetStationId, setMoveTargetStationId] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
-  const [classDropdownOpen, setClassDropdownOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -173,7 +180,6 @@ export default function FloorPlanClient({
 
   function handleClassChange(classId: string) {
     setSelectedClassId(classId);
-    setClassDropdownOpen(false);
     setSelectedStationId(null);
     resetSelectionState();
 
@@ -261,114 +267,111 @@ export default function FloorPlanClient({
 
   if (classes.length === 0) {
     return (
-      <div className="min-h-screen bg-gym-bg p-4 lg:p-6">
+      <div className="min-h-screen bg-background p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gym-text mb-4">
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-4">
             Floor Plan
           </h1>
-          <div className="bg-gym-card/70 border border-gym-border rounded-2xl p-12 text-center">
-            <Users className="w-12 h-12 text-gym-text-muted mx-auto mb-3" />
-            <p className="text-gym-text-secondary">
-              No classes scheduled yet. Add classes in the{" "}
-              <a href="/schedule" className="text-gym-primary underline">
-                Schedule
-              </a>{" "}
-              page first.
-            </p>
-          </div>
+          <Card className="bg-card/70">
+            <CardContent className="p-12 text-center">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">
+                No classes scheduled yet. Add classes in the{" "}
+                <a href="/schedule" className="text-primary underline">
+                  Schedule
+                </a>{" "}
+                page first.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gym-bg p-4 lg:p-6">
+    <div className="min-h-screen bg-background p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gym-text">
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
               Floor Plan
             </h1>
-            <p className="text-sm text-gym-text-secondary mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Undisputed Boxing Gym - 24 Heavy Bags
             </p>
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setClassDropdownOpen((open) => !open)}
-              className="flex items-center gap-3 bg-gym-card border border-gym-border rounded-xl px-4 py-3 min-w-[280px] hover:border-gym-primary/50 transition-colors"
-            >
+          <Select value={selectedClassId} onValueChange={handleClassChange}>
+            <SelectTrigger className="min-w-[280px] h-auto py-2">
               <div className="flex-1 text-left">
-                <p className="text-sm font-semibold text-gym-text">
+                <p className="text-sm font-semibold">
                   {selectedClass?.name ?? "Select class"}
                 </p>
-                <p className="text-xs text-gym-text-secondary">
+                <p className="text-xs text-muted-foreground">
                   {selectedClass?.time ?? ""} ·{" "}
                   {selectedClass?.instructor ?? ""} ·{" "}
                   {selectedClass?.enrolled ?? 0}/{selectedClass?.capacity ?? 24}{" "}
                   booked
                 </p>
               </div>
-              <ChevronDown
-                className={`w-4 h-4 text-gym-text-muted transition-transform ${
-                  classDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {classDropdownOpen ? (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-gym-card border border-gym-border rounded-xl shadow-2xl z-50 overflow-hidden">
-                {classes.map((classRow) => (
-                  <button
-                    key={classRow.id}
-                    onClick={() => handleClassChange(classRow.id)}
-                    className={`w-full text-left px-4 py-3 hover:bg-gym-bg/50 transition-colors border-b border-gym-border last:border-b-0 ${
-                      classRow.id === selectedClassId ? "bg-gym-primary/10" : ""
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-gym-text">
-                      {classRow.name}
-                    </p>
-                    <p className="text-xs text-gym-text-secondary">
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((classRow) => (
+                <SelectItem key={classRow.id} value={classRow.id}>
+                  <div>
+                    <p className="text-sm font-medium">{classRow.name}</p>
+                    <p className="text-xs text-muted-foreground">
                       {classRow.time} · {classRow.instructor} ·{" "}
                       {classRow.enrolled}/{classRow.capacity ?? 24}
                     </p>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-          <div className="bg-gym-card/70 border border-gym-border rounded-xl p-3 text-center">
-            <p className="text-xl font-bold text-gym-accent">{checkedIn}</p>
-            <p className="text-xs text-gym-text-secondary">Checked In</p>
-          </div>
-          <div className="bg-gym-card/70 border border-gym-border rounded-xl p-3 text-center">
-            <p className="text-xl font-bold text-gym-text">{confirmed}</p>
-            <p className="text-xs text-gym-text-secondary">Confirmed</p>
-          </div>
-          <div className="bg-gym-card/70 border border-gym-border rounded-xl p-3 text-center">
-            <p className="text-xl font-bold text-white">{availableCount}</p>
-            <p className="text-xs text-gym-text-secondary">Available</p>
-          </div>
-          <div className="bg-gym-card/70 border border-gym-border rounded-xl p-3 text-center">
-            <p className="text-xl font-bold text-gym-success">{firstTimers}</p>
-            <p className="text-xs text-gym-text-secondary">First Timers</p>
-          </div>
-          <div className="bg-gym-card/70 border border-gym-border rounded-xl p-3 text-center col-span-2 sm:col-span-1">
-            <p className="text-xl font-bold text-gym-danger">{noShows}</p>
-            <p className="text-xs text-gym-text-secondary">No Shows</p>
-          </div>
+          <Card className="bg-card/70">
+            <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold text-accent">{checkedIn}</p>
+              <p className="text-xs text-muted-foreground">Checked In</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/70">
+            <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold text-foreground">{confirmed}</p>
+              <p className="text-xs text-muted-foreground">Confirmed</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/70">
+            <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold text-foreground">
+                {availableCount}
+              </p>
+              <p className="text-xs text-muted-foreground">Available</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/70">
+            <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold text-success">{firstTimers}</p>
+              <p className="text-xs text-muted-foreground">First Timers</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/70 col-span-2 sm:col-span-1">
+            <CardContent className="p-3 text-center">
+              <p className="text-xl font-bold text-destructive">{noShows}</p>
+              <p className="text-xs text-muted-foreground">No Shows</p>
+            </CardContent>
+          </Card>
         </div>
 
         {isPending ? (
           <div className="fixed inset-0 bg-black/20 z-40 flex items-center justify-center pointer-events-none">
-            <div className="bg-gym-card border border-gym-border rounded-xl px-6 py-3 text-sm text-gym-text">
-              Updating...
-            </div>
+            <Card className="px-6 py-3">
+              <span className="text-sm text-foreground">Updating...</span>
+            </Card>
           </div>
         ) : null}
 

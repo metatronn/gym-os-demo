@@ -4,19 +4,23 @@ import { usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import CommandPanel from "@/components/CommandPanel";
 import { TrialBanner } from "@/components/TrialBanner";
+import { cn } from "@/lib/utils";
 
 const SHELLLESS_ROUTES = [
+  "/",
   "/sign-in",
   "/sign-up",
   "/onboarding",
   "/forgot-password",
   "/reset-password",
   "/accept-invite",
+  "/admin",
 ];
 
 function isShelllessRoute(pathname: string): boolean {
   return SHELLLESS_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
+    (route) =>
+      pathname === route || (route !== "/" && pathname.startsWith(`${route}/`)),
   );
 }
 
@@ -28,7 +32,11 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div
+      className={cn(
+        "flex h-screen overflow-hidden bg-background text-foreground",
+      )}
+    >
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TrialBanner />

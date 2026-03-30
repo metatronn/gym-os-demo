@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function OnboardingForm() {
   const router = useRouter();
@@ -54,62 +57,62 @@ export default function OnboardingForm() {
       description="Your 14-day trial starts as soon as the gym is created. No card required up front."
     >
       {error ? (
-        <div className="mb-5 rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Gym name
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="gym-name">Gym name</Label>
+          <Input
+            id="gym-name"
             type="text"
             value={gymName}
             onChange={(event) => setGymName(event.target.value)}
             required
             maxLength={80}
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Undisputed Boxing Gym"
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
+        <div className="space-y-2">
+          <Label htmlFor="location">
             Location
-            <span className="ml-2 text-xs text-gym-text-muted">(optional)</span>
-          </label>
-          <input
+            <span className="ml-2 text-xs text-muted-foreground">
+              (optional)
+            </span>
+          </Label>
+          <Input
+            id="location"
             type="text"
             value={location}
             onChange={(event) => setLocation(event.target.value)}
             maxLength={120}
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Los Angeles, CA"
           />
         </div>
 
-        <div className="rounded-2xl border border-gym-border bg-gym-bg/60 p-4">
-          <p className="text-sm text-gym-text">
+        <div className="rounded-2xl border border-border bg-background/60 p-4">
+          <p className="text-sm text-foreground">
             We&apos;ll create a workspace for{" "}
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-primary">
               {gymName || "your gym"}
             </span>
             {location ? (
-              <span className="text-gym-text-secondary"> in {location}</span>
+              <span className="text-muted-foreground"> in {location}</span>
             ) : null}
             .
           </p>
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading || !gymName.trim()}
-          className="w-full rounded-xl bg-gym-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gym-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full"
         >
           {loading ? "Creating gym..." : "Start free trial"}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   );

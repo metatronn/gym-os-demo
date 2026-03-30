@@ -17,24 +17,61 @@ import {
   Users,
   MapPin,
   ArrowUpRight,
-  X,
   Trash2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 
 const stageConfig = {
-  new: { label: "New", color: "bg-blue-500", textColor: "text-blue-400" },
+  new: { label: "New", color: "bg-primary", badgeVariant: "default" as const },
   contacted: {
     label: "Contacted",
-    color: "bg-yellow-500",
-    textColor: "text-yellow-400",
+    color: "bg-warning",
+    badgeVariant: "warning" as const,
   },
-  booked: { label: "Booked", color: "bg-cyan-500", textColor: "text-cyan-400" },
+  booked: {
+    label: "Booked",
+    color: "bg-accent",
+    badgeVariant: "accent" as const,
+  },
   converted: {
     label: "Converted",
-    color: "bg-green-500",
-    textColor: "text-green-400",
+    color: "bg-success",
+    badgeVariant: "success" as const,
   },
-  lost: { label: "Lost", color: "bg-red-500", textColor: "text-red-400" },
+  lost: {
+    label: "Lost",
+    color: "bg-destructive",
+    badgeVariant: "destructive" as const,
+  },
 };
 
 const sourceIcons: Record<string, React.ReactNode> = {
@@ -60,7 +97,7 @@ const sourceOptions = [
 ] as const;
 
 function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "—";
+  if (!date) return "\u2014";
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleDateString("en-US", {
     year: "numeric",
@@ -150,59 +187,60 @@ export default function LeadsClient({ initialLeads, initialCounts }: Props) {
 
   return (
     <div className="flex h-full">
-      <div
-        className={`flex-1 p-6 overflow-auto ${selected ? "mr-[400px]" : ""}`}
-      >
+      <div className={cn("flex-1 p-6 overflow-auto", selected && "mr-[400px]")}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gym-text">Leads Pipeline</h1>
-            <p className="text-gym-text-muted text-sm mt-1">
+            <h1 className="text-2xl font-bold text-foreground">
+              Leads Pipeline
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
               {totalLeads} total leads &middot; {newCount} new this week
             </p>
           </div>
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
+          <Button onClick={() => setShowNewModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
             Add Lead
-          </button>
+          </Button>
         </div>
 
         {/* Controls */}
         <div className="flex items-center gap-3 mb-6">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gym-text-muted" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
               type="text"
               placeholder="Search leads..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gym-card border border-gym-border rounded-lg text-gym-text text-sm placeholder:text-gym-text-muted focus:outline-none focus:border-gym-primary"
+              className="pl-10"
             />
           </div>
-          <div className="flex bg-gym-card border border-gym-border rounded-lg overflow-hidden">
-            <button
+          <div className="flex rounded-lg overflow-hidden border border-border">
+            <Button
+              variant={view === "pipeline" ? "default" : "ghost"}
+              size="sm"
               onClick={() => setView("pipeline")}
-              className={`px-3 py-2 text-xs font-medium ${view === "pipeline" ? "bg-gym-primary text-white" : "text-gym-text-secondary hover:text-gym-text"}`}
+              className="rounded-none"
             >
               Pipeline
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={view === "list" ? "default" : "ghost"}
+              size="sm"
               onClick={() => setView("list")}
-              className={`px-3 py-2 text-xs font-medium ${view === "list" ? "bg-gym-primary text-white" : "text-gym-text-secondary hover:text-gym-text"}`}
+              className="rounded-none"
             >
               List
-            </button>
+            </Button>
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 bg-gym-card border border-gym-border rounded-lg text-gym-text-secondary text-sm hover:text-gym-text">
-            <Filter className="w-4 h-4" /> Filter
-          </button>
+          <Button variant="outline" size="sm">
+            <Filter className="w-4 h-4 mr-2" /> Filter
+          </Button>
         </div>
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -217,46 +255,51 @@ export default function LeadsClient({ initialLeads, initialCounts }: Props) {
                 <div key={stage} className="min-w-[260px] flex-1">
                   <div className="flex items-center gap-2 mb-3 px-1">
                     <div
-                      className={`w-2.5 h-2.5 rounded-full ${config.color}`}
+                      className={cn("w-2.5 h-2.5 rounded-full", config.color)}
                     />
-                    <span className="text-sm font-medium text-gym-text">
+                    <span className="text-sm font-medium text-foreground">
                       {config.label}
                     </span>
-                    <span className="text-xs text-gym-text-muted bg-gym-card px-2 py-0.5 rounded-full">
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5">
                       {stageLeads.length}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="space-y-2">
                     {stageLeads.map((lead) => (
-                      <div
+                      <Card
                         key={lead.id}
                         onClick={() => setSelectedLead(lead.id)}
-                        className={`p-3 bg-gym-card border rounded-lg cursor-pointer transition-all hover:border-gym-primary/50 ${selectedLead === lead.id ? "border-gym-primary" : "border-gym-border"}`}
+                        className={cn(
+                          "cursor-pointer transition-all hover:border-primary/50",
+                          selectedLead === lead.id && "border-primary",
+                        )}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gym-text">
-                            {lead.name}
-                          </span>
-                          <span className="text-xs font-bold text-gym-primary">
-                            {lead.score}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gym-text-muted mb-2 line-clamp-2">
-                          {lead.interest}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-xs text-gym-text-muted">
-                            {lead.source ? sourceIcons[lead.source] : null}
-                            <span>{lead.source ?? "—"}</span>
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-foreground">
+                              {lead.name}
+                            </span>
+                            <span className="text-xs font-bold text-primary">
+                              {lead.score}
+                            </span>
                           </div>
-                          <span className="text-xs text-gym-text-muted">
-                            {formatDate(lead.createdAt)}
-                          </span>
-                        </div>
-                      </div>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                            {lead.interest}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              {lead.source ? sourceIcons[lead.source] : null}
+                              <span>{lead.source ?? "\u2014"}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(lead.createdAt)}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                     {stageLeads.length === 0 && (
-                      <div className="p-4 border border-dashed border-gym-border rounded-lg text-center text-xs text-gym-text-muted">
+                      <div className="p-4 border border-dashed border-border rounded-lg text-center text-xs text-muted-foreground">
                         No leads
                       </div>
                     )}
@@ -269,243 +312,252 @@ export default function LeadsClient({ initialLeads, initialCounts }: Props) {
 
         {/* List View */}
         {view === "list" && (
-          <div className="bg-gym-card border border-gym-border rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gym-border">
-                  <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                    Name
-                  </th>
-                  <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                    Source
-                  </th>
-                  <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                    Status
-                  </th>
-                  <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                    Score
-                  </th>
-                  <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                    Assigned
-                  </th>
-                  <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                    Created
-                  </th>
-                  <th className="p-3"></th>
-                </tr>
-              </thead>
-              <tbody>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs uppercase">Name</TableHead>
+                  <TableHead className="text-xs uppercase">Source</TableHead>
+                  <TableHead className="text-xs uppercase">Status</TableHead>
+                  <TableHead className="text-xs uppercase">Score</TableHead>
+                  <TableHead className="text-xs uppercase">Assigned</TableHead>
+                  <TableHead className="text-xs uppercase">Created</TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filtered.map((lead) => {
                   const config = stageConfig[lead.status];
                   return (
-                    <tr
+                    <TableRow
                       key={lead.id}
                       onClick={() => setSelectedLead(lead.id)}
-                      className="border-b border-gym-border/50 hover:bg-gym-bg/50 cursor-pointer transition-colors"
+                      className="cursor-pointer"
                     >
-                      <td className="p-3">
+                      <TableCell>
                         <div>
-                          <span className="text-sm font-medium text-gym-text">
+                          <span className="text-sm font-medium text-foreground">
                             {lead.name}
                           </span>
-                          <p className="text-xs text-gym-text-muted">
+                          <p className="text-xs text-muted-foreground">
                             {lead.email}
                           </p>
                         </div>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-1.5 text-xs text-gym-text-secondary">
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           {lead.source ? sourceIcons[lead.source] : null}
-                          {lead.source ?? "—"}
+                          {lead.source ?? "\u2014"}
                         </div>
-                      </td>
-                      <td className="p-3">
-                        <span
-                          className={`text-xs font-medium ${config.textColor}`}
-                        >
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={config.badgeVariant}>
                           {config.label}
-                        </span>
-                      </td>
-                      <td className="p-3">
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <span
-                          className={`text-sm font-bold ${lead.score >= 80 ? "text-green-400" : lead.score >= 60 ? "text-yellow-400" : "text-red-400"}`}
+                          className={cn(
+                            "text-sm font-bold",
+                            lead.score >= 80
+                              ? "text-success"
+                              : lead.score >= 60
+                                ? "text-warning"
+                                : "text-destructive",
+                          )}
                         >
                           {lead.score}
                         </span>
-                      </td>
-                      <td className="p-3 text-xs text-gym-text-secondary">
-                        {lead.assignedTo ?? "—"}
-                      </td>
-                      <td className="p-3 text-xs text-gym-text-muted">
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {lead.assignedTo ?? "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
                         {formatDate(lead.createdAt)}
-                      </td>
-                      <td className="p-3">
-                        <ChevronRight className="w-4 h-4 text-gym-text-muted" />
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </div>
 
       {/* Detail Panel */}
       {selected && (
-        <div className="fixed right-0 top-0 w-[400px] h-full bg-gym-card border-l border-gym-border p-6 overflow-auto z-40">
+        <div className="fixed right-0 top-0 w-[400px] h-full bg-card border-l border-border p-6 overflow-auto z-40">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gym-text">Lead Details</h2>
-            <button
+            <h2 className="text-lg font-bold text-foreground">Lead Details</h2>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setSelectedLead(null)}
-              className="text-gym-text-muted hover:text-gym-text text-sm"
             >
               Close
-            </button>
+            </Button>
           </div>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gym-primary/20 rounded-full flex items-center justify-center text-gym-primary font-bold">
+            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
               {selected.name
                 .split(" ")
                 .map((n) => n[0])
                 .join("")}
             </div>
             <div>
-              <h3 className="text-gym-text font-semibold">{selected.name}</h3>
-              <span
-                className={`text-xs font-medium ${stageConfig[selected.status].textColor}`}
-              >
+              <h3 className="text-foreground font-semibold">{selected.name}</h3>
+              <Badge variant={stageConfig[selected.status].badgeVariant}>
                 {stageConfig[selected.status].label}
-              </span>
+              </Badge>
             </div>
           </div>
           <div className="space-y-4 mb-6">
-            <div className="flex items-center gap-3 p-3 bg-gym-bg rounded-lg">
-              <Mail className="w-4 h-4 text-gym-text-muted" />
-              <span className="text-sm text-gym-text">
-                {selected.email ?? "—"}
+            <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground">
+                {selected.email ?? "\u2014"}
               </span>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-gym-bg rounded-lg">
-              <Phone className="w-4 h-4 text-gym-text-muted" />
-              <span className="text-sm text-gym-text">
-                {selected.phone ?? "—"}
+            <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground">
+                {selected.phone ?? "\u2014"}
               </span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <p className="text-xs text-gym-text-muted mb-1">Lead Score</p>
+            <div className="p-3 bg-background rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Lead Score</p>
               <p
-                className={`text-xl font-bold ${selected.score >= 80 ? "text-green-400" : selected.score >= 60 ? "text-yellow-400" : "text-red-400"}`}
+                className={cn(
+                  "text-xl font-bold",
+                  selected.score >= 80
+                    ? "text-success"
+                    : selected.score >= 60
+                      ? "text-warning"
+                      : "text-destructive",
+                )}
               >
                 {selected.score}
               </p>
             </div>
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <p className="text-xs text-gym-text-muted mb-1">Source</p>
-              <div className="flex items-center gap-1.5 text-sm text-gym-text">
+            <div className="p-3 bg-background rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Source</p>
+              <div className="flex items-center gap-1.5 text-sm text-foreground">
                 {selected.source ? sourceIcons[selected.source] : null}
-                {selected.source ?? "—"}
+                {selected.source ?? "\u2014"}
               </div>
             </div>
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <p className="text-xs text-gym-text-muted mb-1">Created</p>
-              <p className="text-sm text-gym-text">
+            <div className="p-3 bg-background rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Created</p>
+              <p className="text-sm text-foreground">
                 {formatDate(selected.createdAt)}
               </p>
             </div>
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <p className="text-xs text-gym-text-muted mb-1">Last Contact</p>
-              <p className="text-sm text-gym-text">
+            <div className="p-3 bg-background rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Last Contact</p>
+              <p className="text-sm text-foreground">
                 {formatDate(selected.lastContact)}
               </p>
             </div>
           </div>
           <div className="mb-6">
-            <p className="text-xs text-gym-text-muted mb-2">Interest</p>
-            <p className="text-sm text-gym-text-secondary bg-gym-bg p-3 rounded-lg">
-              {selected.interest ?? "—"}
+            <p className="text-xs text-muted-foreground mb-2">Interest</p>
+            <p className="text-sm text-muted-foreground bg-background p-3 rounded-lg">
+              {selected.interest ?? "\u2014"}
             </p>
           </div>
           <div className="mb-6">
-            <p className="text-xs text-gym-text-muted mb-2">Assigned To</p>
-            <p className="text-sm text-gym-text">
-              {selected.assignedTo ?? "—"}
+            <p className="text-xs text-muted-foreground mb-2">Assigned To</p>
+            <p className="text-sm text-foreground">
+              {selected.assignedTo ?? "\u2014"}
             </p>
           </div>
 
           {/* Status Changer */}
           <div className="mb-6">
-            <p className="text-xs text-gym-text-muted mb-2">Move to Stage</p>
+            <p className="text-xs text-muted-foreground mb-2">Move to Stage</p>
             <div className="flex flex-wrap gap-2">
               {stages
                 .filter((s) => s !== selected.status)
                 .map((stage) => {
                   const config = stageConfig[stage];
                   return (
-                    <button
+                    <Button
                       key={stage}
+                      variant="outline"
+                      size="sm"
                       disabled={isPending}
                       onClick={() => handleStatusChange(selected.id, stage)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border border-gym-border hover:border-gym-primary/50 transition-colors ${config.textColor} disabled:opacity-50`}
                     >
+                      <Badge
+                        variant={config.badgeVariant}
+                        className="mr-1.5 px-1.5 py-0"
+                      >
+                        &bull;
+                      </Badge>
                       {config.label}
-                    </button>
+                    </Button>
                   );
                 })}
             </div>
           </div>
 
           <div className="space-y-2">
-            <button className="w-full flex items-center justify-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-              <Phone className="w-4 h-4" />
+            <Button className="w-full">
+              <Phone className="w-4 h-4 mr-2" />
               Call Lead
-            </button>
-            <button className="w-full flex items-center justify-center gap-2 bg-gym-bg hover:bg-gym-border text-gym-text px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-gym-border">
-              <Mail className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" className="w-full">
+              <Mail className="w-4 h-4 mr-2" />
               Send Email
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={() => handleConvert(selected.id)}
               disabled={isPending || selected.status === "converted"}
-              className="w-full flex items-center justify-center gap-2 bg-gym-bg hover:bg-gym-border text-gym-text px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-gym-border disabled:opacity-50"
             >
-              <ArrowUpRight className="w-4 h-4" />
+              <ArrowUpRight className="w-4 h-4 mr-2" />
               {selected.status === "converted"
                 ? "Already Converted"
                 : "Convert to Member"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full"
               onClick={() => handleDelete(selected.id)}
               disabled={isPending}
-              className="w-full flex items-center justify-center gap-2 bg-gym-bg hover:bg-red-500/10 text-red-400 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-gym-border disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 mr-2" />
               Delete Lead
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {/* New Lead Modal */}
-      {showNewModal && (
-        <NewLeadModal
-          onClose={() => setShowNewModal(false)}
-          isPending={isPending}
-          startTransition={startTransition}
-        />
-      )}
+      <NewLeadModal
+        open={showNewModal}
+        onOpenChange={setShowNewModal}
+        isPending={isPending}
+        startTransition={startTransition}
+      />
     </div>
   );
 }
 
 function NewLeadModal({
-  onClose,
+  open,
+  onOpenChange,
   isPending,
   startTransition,
 }: {
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   isPending: boolean;
   startTransition: (fn: () => Promise<void>) => void;
 }) {
@@ -533,133 +585,109 @@ function NewLeadModal({
         assignedTo: assignedTo.trim() || undefined,
       });
       router.refresh();
-      onClose();
+      onOpenChange(false);
     });
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-gym-card border border-gym-border rounded-xl w-full max-w-lg p-6 mx-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-gym-text">New Lead</h2>
-          <button
-            onClick={onClose}
-            className="text-gym-text-muted hover:text-gym-text"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>New Lead</DialogTitle>
+          <DialogDescription>Add a new lead to the pipeline.</DialogDescription>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs text-gym-text-muted mb-1">
-              Name *
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="lead-name">Name *</Label>
+            <Input
+              id="lead-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gym-text-muted mb-1">
-                Email
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="lead-email">Email</Label>
+              <Input
+                id="lead-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
               />
             </div>
-            <div>
-              <label className="block text-xs text-gym-text-muted mb-1">
-                Phone
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="lead-phone">Phone</Label>
+              <Input
+                id="lead-phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gym-text-muted mb-1">
-                Source
-              </label>
-              <select
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-              >
-                <option value="">Select source</option>
-                {sourceOptions.map((s) =>
-                  s ? (
-                    <option key={s} value={s}>
+            <div className="space-y-2">
+              <Label>Source</Label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sourceOptions.map((s) => (
+                    <SelectItem key={s} value={s}>
                       {s}
-                    </option>
-                  ) : null,
-                )}
-              </select>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="block text-xs text-gym-text-muted mb-1">
-                Score (0-100)
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="lead-score">Score (0-100)</Label>
+              <Input
+                id="lead-score"
                 type="number"
                 min="0"
                 max="100"
                 value={score}
                 onChange={(e) => setScore(e.target.value)}
-                className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
               />
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-gym-text-muted mb-1">
-              Interest
-            </label>
-            <textarea
+          <div className="space-y-2">
+            <Label htmlFor="lead-interest">Interest</Label>
+            <Textarea
+              id="lead-interest"
               value={interest}
               onChange={(e) => setInterest(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary resize-none"
+              className="resize-none"
             />
           </div>
-          <div>
-            <label className="block text-xs text-gym-text-muted mb-1">
-              Assigned To
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="lead-assigned">Assigned To</Label>
+            <Input
+              id="lead-assigned"
               type="text"
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
-              className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
             />
           </div>
-          <div className="flex gap-3 pt-2">
-            <button
+          <DialogFooter>
+            <Button
               type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm font-medium hover:bg-gym-border transition-colors"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !name.trim()}
-              className="flex-1 px-4 py-2.5 bg-gym-primary hover:bg-gym-primary/80 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isPending || !name.trim()}>
               {isPending ? "Creating..." : "Create Lead"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

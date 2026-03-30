@@ -7,6 +7,7 @@ import {
   jsonWithSession,
   validateJsonMutation,
 } from "@/lib/auth-api";
+import { recordAuthActivity } from "@/lib/auth-store";
 import {
   createId,
   isValidEmail,
@@ -95,7 +96,16 @@ export async function POST(request: Request) {
     },
   });
 
+  await recordAuthActivity({
+    userId,
+    tenantId: null,
+    type: "sign-up",
+    description: "Created a new account",
+    request,
+  });
+
   return jsonWithSession(
+    request,
     {
       ok: true,
       redirectTo: "/onboarding",

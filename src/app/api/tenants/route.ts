@@ -7,6 +7,7 @@ import {
   jsonWithSession,
   validateJsonMutation,
 } from "@/lib/auth-api";
+import { recordAuthActivity } from "@/lib/auth-store";
 import { inngest } from "@/lib/inngest";
 import { createId, slugify } from "@/lib/auth-utils";
 
@@ -96,7 +97,16 @@ export async function POST(request: Request) {
     console.error("Failed to send tenant/created event", error);
   }
 
+  await recordAuthActivity({
+    userId: auth.userId,
+    tenantId,
+    type: "tenant-created",
+    description: `Created tenant ${name}`,
+    request,
+  });
+
   return jsonWithSession(
+    request,
     {
       ok: true,
       redirectTo: "/dashboard",
@@ -113,5 +123,6 @@ export async function POST(request: Request) {
       tokenVersion: auth.tokenVersion,
     },
     201,
+    { reuseCurrentSession: true },
   );
 }

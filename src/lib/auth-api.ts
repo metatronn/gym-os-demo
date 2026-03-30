@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  clearSessionCookie,
-  createSessionToken,
-  setSessionCookie,
-} from "@/lib/auth-session";
+import { clearSessionCookie, setSessionCookie } from "@/lib/auth-session";
+import { issueAuthSession } from "@/lib/auth-store";
 import { hasAllowedOrigin, isJsonRequest } from "@/lib/auth-utils";
 
 export function jsonError(
@@ -33,6 +30,7 @@ export function validateJsonMutation(request: Request) {
 }
 
 export async function jsonWithSession(
+  request: Request,
   body: Record<string, unknown>,
   session: {
     userId: string;
@@ -41,9 +39,16 @@ export async function jsonWithSession(
     tokenVersion: number;
   },
   status = 200,
+  options?: {
+    reuseCurrentSession?: boolean;
+  },
 ) {
   const response = NextResponse.json(body, { status });
-  const token = await createSessionToken(session);
+  const { token } = await issueAuthSession({
+    ...session,
+    request,
+    reuseCurrentSession: options?.reuseCurrentSession,
+  });
   setSessionCookie(response, token);
   return response;
 }

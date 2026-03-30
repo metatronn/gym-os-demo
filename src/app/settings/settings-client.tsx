@@ -2,30 +2,35 @@
 
 import { useState, useTransition } from "react";
 import {
+  Bell,
   Building2,
   CreditCard,
-  Bell,
-  Plug,
-  Users,
-  Shield,
-  Save,
+  ExternalLink,
+  Globe,
+  Loader2,
   Mail,
   MessageSquare,
-  ExternalLink,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
+  Plug,
+  Save,
+  Shield,
+  Users,
 } from "lucide-react";
-import type { SettingsData, NotificationSettings } from "./actions";
-import {
-  updateGymProfile,
-  updateNotificationSettings,
-  updateSlackWebhook,
-  testSlackWebhook,
-} from "./actions";
-import { StaffTab, SecurityTab } from "./settings-static-tabs";
 
-// ── Tab Config ──
+import type { NotificationSettings, SettingsData } from "./actions";
+import { updateGymProfile, updateNotificationSettings } from "./actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FeedbackMessage, formatCurrency } from "./settings-shared";
+import {
+  IntegrationsTab,
+  StaffTab,
+  SecurityTab,
+} from "./settings-tabs-extended";
 
 const tabs = [
   { id: "gym", label: "Gym Profile", icon: <Building2 className="w-4 h-4" /> },
@@ -46,141 +51,59 @@ const tabs = [
   },
   { id: "staff", label: "Staff & Roles", icon: <Users className="w-4 h-4" /> },
   { id: "security", label: "Security", icon: <Shield className="w-4 h-4" /> },
-];
-
-const mockPlans = [
-  {
-    name: "Basic",
-    price: 99,
-    features: ["3x/week classes", "Open gym access", "Locker room"],
-  },
-  {
-    name: "Premium",
-    price: 199,
-    features: [
-      "Unlimited classes",
-      "Open gym 24/7",
-      "Locker room",
-      "1 PT session/month",
-      "InBody scan",
-    ],
-  },
-  {
-    name: "Unlimited",
-    price: 249,
-    features: [
-      "Everything in Premium",
-      "Unlimited PT",
-      "Priority booking",
-      "Guest passes",
-      "Nutrition coaching",
-    ],
-  },
-  {
-    name: "Trial",
-    price: 29,
-    features: ["1 week access", "3 trial classes", "Gym tour", "InBody scan"],
-  },
-];
-
-// ── Feedback Toast ──
-
-function FeedbackMessage({
-  message,
-  type,
-}: {
-  message: string;
-  type: "success" | "error";
-}) {
-  return (
-    <div
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-        type === "success"
-          ? "bg-green-500/20 text-green-400"
-          : "bg-red-500/20 text-red-400"
-      }`}
-    >
-      {type === "success" ? (
-        <CheckCircle className="w-4 h-4" />
-      ) : (
-        <AlertCircle className="w-4 h-4" />
-      )}
-      {message}
-    </div>
-  );
-}
-
-// ── Toggle Component ──
-
-function Toggle({
-  on,
-  onChange,
-  disabled,
-}: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      disabled={disabled}
-      onClick={() => onChange(!on)}
-      className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${
-        on ? "bg-gym-primary justify-end" : "bg-gym-border justify-start"
-      } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-    >
-      <div className="w-5 h-5 bg-white rounded-full shadow" />
-    </button>
-  );
-}
-
-// ── Main Component ──
+] as const;
 
 export default function SettingsClient({ data }: { data: SettingsData }) {
-  const [activeTab, setActiveTab] = useState("gym");
-
   return (
-    <div className="flex flex-col lg:flex-row h-full">
-      {/* Tab Nav */}
-      <div className="lg:w-[240px] border-b lg:border-b-0 lg:border-r border-gym-border p-3 lg:p-4">
-        <h1 className="text-lg font-bold text-gym-text mb-3 lg:mb-4 px-1">
+    <Tabs defaultValue="gym" className="flex h-full flex-col lg:flex-row">
+      <div className="border-border p-3 lg:w-[240px] lg:border-r lg:p-4">
+        <h1 className="mb-3 px-1 text-lg font-bold text-foreground lg:mb-4">
           Settings
         </h1>
-        <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-1 lg:pb-0">
+        <TabsList className="flex h-auto w-full flex-row gap-1 overflow-x-auto bg-transparent p-0 pb-1 lg:flex-col lg:overflow-x-visible lg:pb-0">
           {tabs.map((tab) => (
-            <button
+            <TabsTrigger
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap lg:w-full ${activeTab === tab.id ? "bg-gym-primary/10 text-gym-primary font-medium" : "text-gym-text-secondary hover:text-gym-text hover:bg-gym-bg"}`}
+              value={tab.id}
+              className="justify-start whitespace-nowrap rounded-lg px-3 py-2 text-sm data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none lg:w-full lg:gap-3 lg:py-2.5"
             >
               {tab.icon}
-              <span className="text-xs lg:text-sm">{tab.label}</span>
-            </button>
+              <span className="ml-2 text-xs lg:ml-0 lg:text-sm">
+                {tab.label}
+              </span>
+            </TabsTrigger>
           ))}
-        </nav>
+        </TabsList>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 p-4 lg:p-6 overflow-auto">
-        {activeTab === "gym" && <GymProfileTab data={data} />}
-        {activeTab === "plans" && <PlansTab data={data} />}
-        {activeTab === "notifications" && <NotificationsTab data={data} />}
-        {activeTab === "integrations" && <IntegrationsTab data={data} />}
-        {activeTab === "staff" && <StaffTab />}
-        {activeTab === "security" && <SecurityTab />}
+      <div className="flex-1 overflow-auto p-4 lg:p-6">
+        <TabsContent value="gym" className="mt-0">
+          <GymProfileTab data={data} />
+        </TabsContent>
+        <TabsContent value="plans" className="mt-0">
+          <PlansTab data={data} />
+        </TabsContent>
+        <TabsContent value="notifications" className="mt-0">
+          <NotificationsTab data={data} />
+        </TabsContent>
+        <TabsContent value="integrations" className="mt-0">
+          <IntegrationsTab data={data} />
+        </TabsContent>
+        <TabsContent value="staff" className="mt-0">
+          <StaffTab data={data} />
+        </TabsContent>
+        <TabsContent value="security" className="mt-0">
+          <SecurityTab data={data} />
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   );
 }
-
-// ── Gym Profile Tab ──
 
 function GymProfileTab({ data }: { data: SettingsData }) {
   const [name, setName] = useState(data.tenant.name);
   const [slug, setSlug] = useState(data.tenant.slug ?? "");
+  const [logoUrl, setLogoUrl] = useState(data.tenant.logoUrl ?? "");
   const [feedback, setFeedback] = useState<{
     message: string;
     type: "success" | "error";
@@ -190,185 +113,211 @@ function GymProfileTab({ data }: { data: SettingsData }) {
   function handleSave() {
     setFeedback(null);
     startTransition(async () => {
-      const result = await updateGymProfile({ name, slug });
-      if (result.success) {
-        setFeedback({ message: "Profile saved successfully", type: "success" });
-      } else {
-        setFeedback({
-          message: result.error ?? "Failed to save",
-          type: "error",
-        });
-      }
+      const result = await updateGymProfile({ name, slug, logoUrl });
+      setFeedback({
+        message: result.success
+          ? "Profile saved successfully"
+          : (result.error ?? "Failed to save profile"),
+        type: result.success ? "success" : "error",
+      });
     });
   }
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gym-text mb-1">Gym Profile</h2>
-      <p className="text-sm text-gym-text-muted mb-6">
-        Manage your gym information and branding
+      <h2 className="mb-1 text-xl font-bold text-foreground">Gym Profile</h2>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Manage your public gym identity and brand assets.
       </p>
       <div className="max-w-2xl space-y-4">
-        <div>
-          <label className="block text-xs text-gym-text-muted mb-1.5">
-            Gym Name
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="gym-name">Gym Name</Label>
+          <Input
+            id="gym-name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 bg-gym-card border border-gym-border rounded-lg text-sm text-gym-text focus:outline-none focus:border-gym-primary"
+            onChange={(event) => setName(event.target.value)}
           />
         </div>
-        <div>
-          <label className="block text-xs text-gym-text-muted mb-1.5">
-            Slug
-          </label>
-          <input
+
+        <div className="space-y-1.5">
+          <Label htmlFor="gym-slug">Slug</Label>
+          <Input
+            id="gym-slug"
             type="text"
             value={slug}
-            onChange={(e) => setSlug(e.target.value)}
+            onChange={(event) => setSlug(event.target.value)}
             placeholder="your-gym-name"
-            className="w-full px-3 py-2 bg-gym-card border border-gym-border rounded-lg text-sm text-gym-text focus:outline-none focus:border-gym-primary"
           />
-          <p className="text-xs text-gym-text-muted mt-1">
-            Used in URLs: app.gymos.com/<strong>{slug || "your-slug"}</strong>
+          <p className="text-xs text-muted-foreground">
+            Future public URL: app.gymos.com/
+            <strong>{slug || "your-slug"}</strong>
           </p>
         </div>
 
-        {feedback && (
-          <FeedbackMessage message={feedback.message} type={feedback.type} />
-        )}
+        <div className="space-y-1.5">
+          <Label htmlFor="gym-logo">Logo URL</Label>
+          <div className="flex gap-3">
+            <Input
+              id="gym-logo"
+              type="url"
+              value={logoUrl}
+              onChange={(event) => setLogoUrl(event.target.value)}
+              placeholder="https://cdn.example.com/logo.png"
+            />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-card">
+              {logoUrl ? (
+                <div
+                  aria-label="Gym logo preview"
+                  className="h-8 w-8 rounded bg-cover bg-center"
+                  style={{ backgroundImage: `url(${logoUrl})` }}
+                />
+              ) : (
+                <Globe className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+        </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isPending}
-          className="flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-        >
+        {feedback ? (
+          <FeedbackMessage message={feedback.message} type={feedback.type} />
+        ) : null}
+
+        <Button onClick={handleSave} disabled={isPending}>
           {isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <Save className="w-4 h-4" />
+            <Save className="mr-2 h-4 w-4" />
           )}
           {isPending ? "Saving..." : "Save Changes"}
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
-
-// ── Plans Tab ──
 
 function PlansTab({ data }: { data: SettingsData }) {
   const { stripeEnabled, stripeConnected } = data.integrations;
 
-  if (stripeEnabled && stripeConnected) {
-    return (
-      <div>
-        <h2 className="text-xl font-bold text-gym-text mb-1">
-          Membership Plans
-        </h2>
-        <p className="text-sm text-gym-text-muted mb-6">
-          Manage plans through your Stripe Dashboard
-        </p>
-        <div className="max-w-2xl">
-          <div className="p-6 bg-gym-card border border-gym-border rounded-xl text-center">
-            <CreditCard className="w-8 h-8 text-gym-primary mx-auto mb-3" />
-            <p className="text-sm text-gym-text mb-2">
-              Your Stripe account is connected
-            </p>
-            <p className="text-xs text-gym-text-muted mb-4">
-              Create and manage membership plans, pricing, and coupons directly
-              in Stripe.
-            </p>
-            <a
-              href="https://dashboard.stripe.com/products"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Open Stripe Dashboard <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (stripeEnabled && !stripeConnected) {
-    return (
-      <div>
-        <h2 className="text-xl font-bold text-gym-text mb-1">
-          Membership Plans
-        </h2>
-        <p className="text-sm text-gym-text-muted mb-6">
-          Configure pricing and plan features
-        </p>
-        <div className="max-w-2xl">
-          <div className="p-6 bg-gym-card border border-gym-border rounded-xl text-center">
-            <CreditCard className="w-8 h-8 text-gym-text-muted mx-auto mb-3" />
-            <p className="text-sm text-gym-text mb-2">
-              Connect Stripe to manage plans
-            </p>
-            <p className="text-xs text-gym-text-muted mb-4">
-              Set up your Stripe account on the Billing page to create and
-              manage membership plans.
-            </p>
-            <a
-              href="/billing"
-              className="inline-flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Go to Billing
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Local dev / Stripe not configured — show mock plans
   return (
     <div>
-      <h2 className="text-xl font-bold text-gym-text mb-1">Membership Plans</h2>
-      <p className="text-sm text-gym-text-muted mb-6">
-        Configure pricing and plan features
+      <h2 className="mb-1 text-xl font-bold text-foreground">
+        Membership Plans
+      </h2>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Live pricing from Stripe. Management still happens in the Stripe
+        Dashboard.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
-        {mockPlans.map((plan) => (
-          <div
-            key={plan.name}
-            className="p-4 bg-gym-card border border-gym-border rounded-xl hover:border-gym-primary/50 transition-colors cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-gym-text">{plan.name}</h3>
-              <div className="text-right">
-                <span className="text-2xl font-bold text-gym-primary">
-                  ${plan.price}
-                </span>
-                <span className="text-xs text-gym-text-muted">
-                  /{plan.name === "Trial" ? "week" : "mo"}
-                </span>
-              </div>
-            </div>
-            <ul className="space-y-1.5">
-              {plan.features.map((f) => (
-                <li
-                  key={f}
-                  className="text-xs text-gym-text-secondary flex items-center gap-2"
-                >
-                  <div className="w-1 h-1 rounded-full bg-gym-primary" />
-                  {f}
-                </li>
-              ))}
-            </ul>
+
+      {!stripeEnabled ? (
+        <Card className="max-w-2xl text-center">
+          <CardContent className="p-6">
+            <CreditCard className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="mb-2 text-sm text-foreground">
+              Stripe isn&apos;t configured for this environment yet.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Add your Stripe keys to load real plan data here.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {stripeEnabled && !stripeConnected ? (
+        <Card className="max-w-2xl text-center">
+          <CardContent className="p-6">
+            <CreditCard className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="mb-2 text-sm text-foreground">
+              Connect billing to start selling plans.
+            </p>
+            <p className="mb-4 text-xs text-muted-foreground">
+              The Stripe catalog is available, but this gym doesn&apos;t have a
+              billing customer attached yet.
+            </p>
+            <Button asChild>
+              <a href="/billing">Go to Billing</a>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {stripeEnabled ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant={stripeConnected ? "success" : "warning"}>
+              {stripeConnected ? "Stripe connected" : "Stripe not connected"}
+            </Badge>
+            <Button variant="link" asChild className="gap-2 p-0">
+              <a
+                href="https://dashboard.stripe.com/products"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open Stripe Dashboard <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
           </div>
-        ))}
-      </div>
+
+          {data.plans.length === 0 ? (
+            <Card>
+              <CardContent className="p-5 text-sm text-muted-foreground">
+                No active recurring plans were found in Stripe.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {data.plans.map((plan) => (
+                <Card key={plan.id}>
+                  <CardContent className="p-4">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground">
+                          {plan.name}
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {plan.description || "Recurring membership plan"}
+                        </p>
+                      </div>
+                      <Badge variant={plan.active ? "success" : "secondary"}>
+                        {plan.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-2xl font-bold text-primary">
+                        {formatCurrency(plan.unitAmount, plan.currency)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {plan.interval
+                          ? `Billed every ${plan.interval}`
+                          : "Custom billing cadence"}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2">
+                        <span>Trial</span>
+                        <span className="font-medium text-foreground">
+                          {plan.trialDays ? `${plan.trialDays} days` : "None"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2">
+                        <span>Stripe price ID</span>
+                        <span className="font-mono text-xs text-foreground">
+                          {plan.id}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
-
-// ── Notifications Tab ──
 
 function NotificationsTab({ data }: { data: SettingsData }) {
   const [notifications, setNotifications] = useState<NotificationSettings>(
@@ -390,291 +339,90 @@ function NotificationsTab({ data }: { data: SettingsData }) {
       key: "paymentAlerts",
       label: "Payment failure alerts",
       desc: "Get notified when a member payment fails",
-      icon: <CreditCard className="w-4 h-4" />,
+      icon: <CreditCard className="h-4 w-4" />,
     },
     {
       key: "leadNotifications",
       label: "New lead notifications",
-      desc: "Alert when a new lead comes in",
-      icon: <Mail className="w-4 h-4" />,
+      desc: "Alert the team when a new lead comes in",
+      icon: <Mail className="h-4 w-4" />,
     },
     {
       key: "atRiskAlerts",
       label: "At-risk member alerts",
-      desc: "Flag when a member risk score exceeds threshold",
-      icon: <Shield className="w-4 h-4" />,
+      desc: "Flag members with high churn risk",
+      icon: <Shield className="h-4 w-4" />,
     },
     {
       key: "dailyDigest",
       label: "Daily briefing email",
-      desc: "Receive a daily summary of gym activity",
-      icon: <Bell className="w-4 h-4" />,
+      desc: "Receive a summary of yesterday's activity",
+      icon: <Bell className="h-4 w-4" />,
     },
     {
       key: "followUpSms",
       label: "Automated follow-up SMS",
-      desc: "Send SMS to leads after 24hr no-response",
-      icon: <MessageSquare className="w-4 h-4" />,
+      desc: "Queue follow-up texts for leads without replies",
+      icon: <MessageSquare className="h-4 w-4" />,
     },
     {
       key: "classReminders",
       label: "Class reminder emails",
-      desc: "Send reminders 2 hours before class",
-      icon: <Mail className="w-4 h-4" />,
+      desc: "Send reminder emails before class start",
+      icon: <Mail className="h-4 w-4" />,
     },
   ];
 
   function handleToggle(key: keyof NotificationSettings, value: boolean) {
-    const updated = { ...notifications, [key]: value };
-    setNotifications(updated);
+    const next = { ...notifications, [key]: value };
+    setNotifications(next);
     setFeedback(null);
 
     startTransition(async () => {
-      const result = await updateNotificationSettings(updated);
-      if (result.success) {
-        setFeedback({
-          message: "Notification settings saved",
-          type: "success",
-        });
-      } else {
-        // Revert on failure
+      const result = await updateNotificationSettings(next);
+
+      if (!result.success) {
         setNotifications(notifications);
-        setFeedback({
-          message: result.error ?? "Failed to save",
-          type: "error",
-        });
       }
+
+      setFeedback({
+        message: result.success
+          ? "Notification settings saved"
+          : (result.error ?? "Failed to save settings"),
+        type: result.success ? "success" : "error",
+      });
     });
   }
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gym-text mb-1">Notifications</h2>
-      <p className="text-sm text-gym-text-muted mb-6">
-        Configure alerts and automated messaging
+      <h2 className="mb-1 text-xl font-bold text-foreground">Notifications</h2>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Configure the alerts and automation settings stored on your tenant.
       </p>
       <div className="max-w-2xl space-y-4">
-        {feedback && (
+        {feedback ? (
           <FeedbackMessage message={feedback.message} type={feedback.type} />
-        )}
-        {items.map((n) => (
-          <div
-            key={n.key}
-            className="flex items-center justify-between p-4 bg-gym-card border border-gym-border rounded-xl"
-          >
-            <div className="flex items-center gap-3">
-              <div className="text-gym-text-muted">{n.icon}</div>
-              <div>
-                <p className="text-sm font-medium text-gym-text">{n.label}</p>
-                <p className="text-xs text-gym-text-muted">{n.desc}</p>
-              </div>
-            </div>
-            <Toggle
-              on={notifications[n.key]}
-              onChange={(v) => handleToggle(n.key, v)}
-              disabled={isPending}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Integrations Tab ──
-
-function IntegrationsTab({ data }: { data: SettingsData }) {
-  const { stripeConnected, slackConnected, slackWebhookUrl, stripeEnabled } =
-    data.integrations;
-  const [webhookUrl, setWebhookUrl] = useState(slackWebhookUrl ?? "");
-  const [feedback, setFeedback] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [isTesting, startTestTransition] = useTransition();
-
-  function handleSaveSlack() {
-    setFeedback(null);
-    startTransition(async () => {
-      const result = await updateSlackWebhook(webhookUrl);
-      if (result.success) {
-        setFeedback({ message: "Slack webhook saved", type: "success" });
-      } else {
-        setFeedback({
-          message: result.error ?? "Failed to save",
-          type: "error",
-        });
-      }
-    });
-  }
-
-  function handleTestSlack() {
-    setFeedback(null);
-    startTestTransition(async () => {
-      const result = await testSlackWebhook();
-      if (result.success) {
-        setFeedback({
-          message: "Test message sent to Slack!",
-          type: "success",
-        });
-      } else {
-        setFeedback({
-          message: result.error ?? "Failed to send test",
-          type: "error",
-        });
-      }
-    });
-  }
-
-  const integrations = [
-    {
-      name: "Stripe",
-      desc: "Payment processing",
-      connected: stripeConnected,
-      enabled: stripeEnabled,
-      action: stripeConnected
-        ? { label: "Dashboard", href: "https://dashboard.stripe.com" }
-        : { label: "Set Up", href: "/billing" },
-    },
-    {
-      name: "Slack",
-      desc: "Team notifications",
-      connected: slackConnected,
-      enabled: true,
-      custom: true,
-    },
-    {
-      name: "Twilio",
-      desc: "SMS messaging",
-      connected: false,
-      enabled: false,
-      comingSoon: true,
-    },
-    {
-      name: "Google Calendar",
-      desc: "Schedule sync",
-      connected: false,
-      enabled: false,
-      comingSoon: true,
-    },
-    {
-      name: "Zapier",
-      desc: "Workflow automation",
-      connected: false,
-      enabled: false,
-      comingSoon: true,
-    },
-  ];
-
-  return (
-    <div>
-      <h2 className="text-xl font-bold text-gym-text mb-1">Integrations</h2>
-      <p className="text-sm text-gym-text-muted mb-6">
-        Connect external services and tools
-      </p>
-      <div className="max-w-2xl space-y-3">
-        {feedback && (
-          <FeedbackMessage message={feedback.message} type={feedback.type} />
-        )}
-
-        {integrations.map((i) => (
-          <div key={i.name}>
-            <div className="flex items-center justify-between p-4 bg-gym-card border border-gym-border rounded-xl">
+        ) : null}
+        {items.map((item) => (
+          <Card key={item.key}>
+            <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gym-bg rounded-lg flex items-center justify-center">
-                  <Plug className="w-4 h-4 text-gym-text-muted" />
-                </div>
+                <div className="text-muted-foreground">{item.icon}</div>
                 <div>
-                  <p className="text-sm font-medium text-gym-text">{i.name}</p>
-                  <p className="text-xs text-gym-text-muted">{i.desc}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {item.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                {i.comingSoon ? (
-                  <span className="text-xs font-medium text-gym-text-muted">
-                    Coming Soon
-                  </span>
-                ) : (
-                  <>
-                    <span
-                      className={`text-xs font-medium capitalize ${
-                        i.connected ? "text-green-400" : "text-gym-text-muted"
-                      }`}
-                    >
-                      {i.connected ? "connected" : "not connected"}
-                    </span>
-                    {i.action && (
-                      <a
-                        href={i.action.href}
-                        target={
-                          i.action.href.startsWith("http")
-                            ? "_blank"
-                            : undefined
-                        }
-                        rel={
-                          i.action.href.startsWith("http")
-                            ? "noopener noreferrer"
-                            : undefined
-                        }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                          i.connected
-                            ? "bg-gym-bg text-gym-text-secondary border border-gym-border"
-                            : "bg-gym-primary text-white"
-                        }`}
-                      >
-                        {i.action.label}
-                      </a>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Slack custom section */}
-            {i.custom && i.name === "Slack" && (
-              <div className="mt-2 ml-4 p-4 bg-gym-bg border border-gym-border rounded-xl space-y-3">
-                <div>
-                  <label className="block text-xs text-gym-text-muted mb-1.5">
-                    Webhook URL
-                  </label>
-                  <input
-                    type="url"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
-                    placeholder="https://hooks.slack.com/services/..."
-                    className="w-full px-3 py-2 bg-gym-card border border-gym-border rounded-lg text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveSlack}
-                    disabled={isPending}
-                    className="flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                  >
-                    {isPending ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Save className="w-3 h-3" />
-                    )}
-                    Save
-                  </button>
-                  {webhookUrl && (
-                    <button
-                      onClick={handleTestSlack}
-                      disabled={isTesting}
-                      className="flex items-center gap-2 bg-gym-bg hover:bg-gym-border text-gym-text px-3 py-1.5 rounded-lg text-xs font-medium border border-gym-border transition-colors disabled:opacity-50"
-                    >
-                      {isTesting ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : null}
-                      Send Test
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+              <Switch
+                checked={notifications[item.key]}
+                onCheckedChange={(value) => handleToggle(item.key, value)}
+                disabled={isPending}
+              />
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

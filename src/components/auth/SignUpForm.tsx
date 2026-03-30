@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -65,88 +68,76 @@ export default function SignUpForm() {
       footer={
         <p>
           Already have an account?{" "}
-          <Link href="/sign-in" className="text-gym-accent hover:underline">
-            Sign in
-          </Link>
+          <Button variant="link" asChild className="h-auto p-0">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
         </p>
       }
     >
       {error ? (
-        <div className="mb-5 rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Full name
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="name">Full name</Label>
+          <Input
+            id="name"
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
             autoComplete="name"
             required
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Javier Laval"
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Email
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="owner@ironjawboxing.com"
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Password
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="new-password"
             required
             minLength={8}
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="At least 8 characters"
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Confirm password
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">Confirm password</Label>
+          <Input
+            id="confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             autoComplete="new-password"
             required
             minLength={8}
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Re-enter your password"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gym-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gym-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Creating account..." : "Create account"}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   );

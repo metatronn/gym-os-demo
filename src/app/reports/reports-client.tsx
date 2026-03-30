@@ -1,465 +1,548 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  DollarSign,
-  Target,
   Activity,
   ArrowUpRight,
-  ChevronDown,
+  DollarSign,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import {
-  AreaChart,
   Area,
-  BarChart,
+  AreaChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  Legend,
 } from "recharts";
+
+import { cn } from "@/lib/utils";
 import type { ReportData } from "@/lib/reporting";
 import { RANGE_OPTIONS, type RangeKey } from "@/lib/reporting";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface ReportsClientProps {
-  data: ReportData;
+const RETENTION_COLORS = ["#0350FF", "#06B6D4", "#10B981", "#F59E0B"];
+
+function formatDateInput(value: string) {
+  return value.slice(0, 10);
 }
 
-export default function ReportsClient({ data }: ReportsClientProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentRange = (searchParams.get("range") as RangeKey) || "6m";
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "Never";
+  }
 
-  const handleRangeChange = (range: string) => {
-    router.push(`/reports?range=${range}`);
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function getRiskBadgeVariant(
+  riskLevel: string,
+): "destructive" | "warning" | "success" {
+  if (riskLevel === "high") return "destructive";
+  if (riskLevel === "medium") return "warning";
+  return "success";
+}
+
+function getBillingBadgeVariant(
+  status: string,
+): "destructive" | "warning" | "success" | "default" {
+  const variants: Record<
+    string,
+    "destructive" | "warning" | "success" | "default"
+  > = {
+    failed: "destructive",
+    "past-due": "warning",
+    current: "success",
+    pending: "warning",
   };
 
-  const {
-    kpis,
-    revenueSeries,
-    memberGrowth,
-    leadFunnel,
-    leadSources,
-    classUtilization,
-    memberPlans,
-    riskDistribution,
-    totalMembers,
-  } = data;
+  return variants[status] ?? "default";
+}
 
-  const rangeLabel =
-    RANGE_OPTIONS.find((o) => o.value === currentRange)?.label ||
-    "Last 6 months";
+export default function ReportsClient({ data }: { data: ReportData }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentRange =
+    (searchParams.get("range") as RangeKey) || data.range.key;
+  const currentFrom =
+    searchParams.get("from") ?? formatDateInput(data.range.from);
+  const currentTo = searchParams.get("to") ?? formatDateInput(data.range.to);
+  const [fromDate, setFromDate] = useState(currentFrom);
+  const [toDate, setToDate] = useState(currentTo);
 
-  // Find max funnel count for scaling bars
-  const maxFunnelCount = Math.max(...leadFunnel.map((s) => s.count), 1);
+  useEffect(() => {
+    setFromDate(currentFrom);
+    setToDate(currentTo);
+  }, [currentFrom, currentTo]);
+
+  function handleRangeChange(range: RangeKey) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("range", range);
+
+    if (range !== "custom") {
+      params.delete("from");
+      params.delete("to");
+    } else {
+      params.set("from", fromDate);
+      params.set("to", toDate);
+    }
+
+    router.push(`/reports?${params.toString()}`);
+  }
+
+  function applyCustomRange() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("range", "custom");
+    params.set("from", fromDate);
+    params.set("to", toDate);
+    router.push(`/reports?${params.toString()}`);
+  }
+
+  const retentionChartData = ["1M", "3M", "6M", "12M"].map((period) => {
+    const row: Record<string, string | number> = { period };
+
+    data.retentionCurves.forEach((curve) => {
+      const point = curve.points.find((entry) => entry.period === period);
+      row[curve.cohort] = point?.retention ?? 0;
+    });
+
+    return row;
+  });
 
   return (
-    <div className="p-4 lg:p-6 overflow-auto h-full">
-      {/* Header with date range selector */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div className="h-full overflow-auto p-4 lg:p-6">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gym-text">
+          <h1 className="text-2xl font-bold text-foreground">
             Reports & Analytics
           </h1>
-          <p className="text-gym-text-muted text-sm mt-1">
-            Performance overview
+          <p className="mt-1 text-sm text-muted-foreground">
+            Tenant-scoped performance data from your live gym records.
           </p>
         </div>
-        <div className="relative">
-          <select
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
             value={currentRange}
-            onChange={(e) => handleRangeChange(e.target.value)}
-            className="appearance-none pl-3 pr-8 py-2 bg-gym-card border border-gym-border rounded-lg text-sm text-gym-text cursor-pointer hover:border-gym-primary/50 transition focus:outline-none focus:ring-1 focus:ring-gym-primary/50"
+            onValueChange={(value) => handleRangeChange(value as RangeKey)}
           >
-            {RANGE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gym-text-muted pointer-events-none" />
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select range" />
+            </SelectTrigger>
+            <SelectContent>
+              {RANGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {currentRange === "custom" ? (
+            <>
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(event) => setFromDate(event.target.value)}
+                className="w-auto"
+              />
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(event) => setToDate(event.target.value)}
+                className="w-auto"
+              />
+              <Button onClick={applyCustomRange} size="sm">
+                Apply
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           {
             label: "Revenue",
-            value: `$${kpis.revenue.toLocaleString()}`,
-            change: `${kpis.revenueChange >= 0 ? "+" : ""}${kpis.revenueChange}%`,
-            up: kpis.revenueChange >= 0,
-            icon: <DollarSign className="w-4 h-4" />,
+            value: `$${data.kpis.revenue.toLocaleString()}`,
+            change: `${data.kpis.revenueChange >= 0 ? "+" : ""}${data.kpis.revenueChange}%`,
+            up: data.kpis.revenueChange >= 0,
+            icon: <DollarSign className="h-4 w-4" />,
           },
           {
             label: "Active Members",
-            value: kpis.activeMembers,
-            change: `+${kpis.activeMembers}`,
+            value: data.kpis.activeMembers,
+            change: `${data.kpis.activeMembers} live`,
             up: true,
-            icon: <Users className="w-4 h-4" />,
+            icon: <Users className="h-4 w-4" />,
           },
           {
             label: "New Leads",
-            value: kpis.newLeads,
-            change: `+${kpis.newLeads}`,
+            value: data.kpis.newLeads,
+            change: `${data.kpis.newLeads} in range`,
             up: true,
-            icon: <Target className="w-4 h-4" />,
+            icon: <Target className="h-4 w-4" />,
           },
           {
             label: "Conversion",
-            value: `${kpis.conversionRate}%`,
-            change: `${kpis.conversionRate}%`,
-            up: kpis.conversionRate > 0,
-            icon: <ArrowUpRight className="w-4 h-4" />,
+            value: `${data.kpis.conversionRate}%`,
+            change: "lead to member",
+            up: data.kpis.conversionRate >= 20,
+            icon: <ArrowUpRight className="h-4 w-4" />,
           },
           {
             label: "Churn Rate",
-            value: `${kpis.churnRate}%`,
-            change: `${kpis.churnRate}%`,
+            value: `${data.kpis.churnRate}%`,
+            change: "membership base",
             up: false,
-            icon: <TrendingDown className="w-4 h-4" />,
+            icon: <TrendingDown className="h-4 w-4" />,
           },
           {
             label: "Avg Risk",
-            value: `${kpis.avgRisk}%`,
-            change: `${kpis.avgRisk}%`,
+            value: `${data.kpis.avgRisk}%`,
+            change: "member score",
             up: false,
-            icon: <Activity className="w-4 h-4" />,
+            icon: <Activity className="h-4 w-4" />,
           },
         ].map((kpi) => (
-          <div
-            key={kpi.label}
-            className="p-3 bg-gym-card border border-gym-border rounded-xl"
-          >
-            <div className="flex items-center gap-1.5 mb-1 text-gym-text-muted">
-              {kpi.icon}
-              <span className="text-[10px]">{kpi.label}</span>
-            </div>
-            <p className="text-lg font-bold text-gym-text">{kpi.value}</p>
-            <p
-              className={`text-[10px] flex items-center gap-0.5 ${kpi.up ? "text-green-400" : "text-red-400"}`}
-            >
-              {kpi.up ? (
-                <TrendingUp className="w-3 h-3" />
-              ) : (
-                <TrendingDown className="w-3 h-3" />
-              )}
-              {kpi.change}
-            </p>
-          </div>
+          <Card key={kpi.label} className="bg-card/70 backdrop-blur">
+            <CardContent className="p-3">
+              <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                {kpi.icon}
+                <span className="text-[10px]">{kpi.label}</span>
+              </div>
+              <p className="text-lg font-bold text-foreground">{kpi.value}</p>
+              <p
+                className={cn(
+                  "flex items-center gap-0.5 text-[10px]",
+                  kpi.up ? "text-success" : "text-destructive",
+                )}
+              >
+                {kpi.up ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {kpi.change}
+              </p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Row 1: Revenue Trend + Member Growth */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Revenue Trend */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Revenue Trend
-          </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={revenueSeries}>
-              <defs>
-                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0350FF" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#0350FF" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-              <XAxis dataKey="month" stroke="#64748B" tick={{ fontSize: 11 }} />
-              <YAxis
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #1E293B",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-                formatter={
-                  ((value: number) => [
-                    `$${Number(value ?? 0).toLocaleString()}`,
-                    "Revenue",
-                  ]) as never
-                }
-              />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke="#0350FF"
-                fill="url(#revenueGrad)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-sm">Revenue Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={data.revenueSeries}>
+                <defs>
+                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0350FF" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#0350FF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis
+                  dataKey="month"
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(value) => `$${Number(value).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    border: "1px solid #1E293B",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  formatter={
+                    ((value: number) => [
+                      `$${Number(value).toLocaleString()}`,
+                      "Revenue",
+                    ]) as never
+                  }
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#0350FF"
+                  fill="url(#revenueGrad)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        {/* Member Growth */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Member Growth
-          </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={memberGrowth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-              <XAxis dataKey="month" stroke="#64748B" tick={{ fontSize: 11 }} />
-              <YAxis
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #1E293B",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: 11 }}
-                formatter={(value: string) => (
-                  <span className="text-gym-text-secondary">{value}</span>
-                )}
-              />
-              <Bar
-                dataKey="newMembers"
-                name="New Members"
-                fill="#10B981"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="churned"
-                name="Churned"
-                fill="#EF4444"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Card className="bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-sm">Member Growth</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={data.memberGrowth}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis
+                  dataKey="month"
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    border: "1px solid #1E293B",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11 }}
+                  formatter={(value: string) => (
+                    <span className="text-muted-foreground">{value}</span>
+                  )}
+                />
+                <Bar
+                  dataKey="newMembers"
+                  name="New Members"
+                  fill="#10B981"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="churned"
+                  name="Churned"
+                  fill="#EF4444"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Row 2: Class Utilization + Lead Conversion Funnel */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Class Utilization */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Class Utilization
-          </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={classUtilization} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                stroke="#64748B"
-                tick={{ fontSize: 11 }}
-                tickFormatter={(v) => `${v}%`}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                stroke="#64748B"
-                tick={{ fontSize: 10 }}
-                width={110}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #1E293B",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-                formatter={
-                  ((value: number) => [`${value}%`, "Utilization"]) as never
-                }
-              />
-              <Bar dataKey="utilization" fill="#06B6D4" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-sm">Class Utilization</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={data.classUtilization} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="#64748B"
+                  tick={{ fontSize: 10 }}
+                  width={120}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    border: "1px solid #1E293B",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  formatter={
+                    ((value: number) => [`${value}%`, "Utilization"]) as never
+                  }
+                />
+                <Bar
+                  dataKey="utilization"
+                  fill="#06B6D4"
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        {/* Lead Conversion Funnel */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Lead Conversion Funnel
-          </h3>
-          <div className="space-y-3 mt-2">
-            {leadFunnel.map((stage, i) => {
-              const barWidthPct =
-                maxFunnelCount > 0
-                  ? Math.max((stage.count / maxFunnelCount) * 100, 8)
-                  : 8;
-              return (
+        <Card className="bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-sm">Lead Conversion Funnel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {data.leadFunnel.map((stage) => (
                 <div key={stage.stage}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-gym-text-secondary">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
                       {stage.stage}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gym-text">
+                      <span className="text-sm font-bold text-foreground">
                         {stage.count}
                       </span>
-                      {stage.conversionRate !== null && (
-                        <span className="text-[10px] text-gym-text-muted">
-                          ({stage.conversionRate}% from prev)
+                      {stage.conversionRate !== null ? (
+                        <span className="text-[10px] text-muted-foreground">
+                          {stage.conversionRate}% from previous
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
-                  <div className="w-full h-7 bg-gym-bg rounded-lg overflow-hidden flex items-center">
+                  <div className="h-7 w-full overflow-hidden rounded-lg bg-background">
                     <div
-                      className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                      className="flex h-full items-center justify-end rounded-lg pr-2 text-[10px] font-bold text-primary-foreground"
                       style={{
+                        width: `${Math.max(
+                          (stage.count /
+                            Math.max(
+                              ...data.leadFunnel.map((entry) => entry.count),
+                              1,
+                            )) *
+                            100,
+                          8,
+                        )}%`,
                         backgroundColor: stage.color,
-                        width: `${barWidthPct}%`,
-                        opacity: 0.8,
+                        opacity: 0.85,
                       }}
                     >
-                      {barWidthPct > 20 && (
-                        <span className="text-[10px] font-bold text-white">
-                          {stage.count}
-                        </span>
-                      )}
+                      {stage.count}
                     </div>
                   </div>
-                  {/* Arrow connector between stages */}
-                  {i < leadFunnel.length - 1 && (
-                    <div className="flex justify-center py-0.5">
-                      <svg
-                        width="12"
-                        height="10"
-                        className="text-gym-text-muted"
-                      >
-                        <polygon
-                          points="6,10 0,0 12,0"
-                          fill="currentColor"
-                          opacity="0.3"
-                        />
-                      </svg>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Row 3: Lead Sources, Member Plans, Risk Distribution */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Lead Sources */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Lead Sources
-          </h3>
-          <div className="space-y-3">
-            {leadSources.length === 0 ? (
-              <p className="text-sm text-gym-text-muted">
-                No leads in this period
-              </p>
-            ) : (
-              leadSources.map((src) => {
-                const maxCount = Math.max(
-                  ...leadSources.map((s) => s.count),
-                  1,
-                );
-                return (
-                  <div key={src.source} className="flex items-center gap-3">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: src.color }}
-                    />
-                    <span className="text-sm text-gym-text-secondary flex-1">
-                      {src.source}
-                    </span>
-                    <span className="text-sm font-bold text-gym-text">
-                      {src.count}
-                    </span>
-                    <div className="w-16 h-1.5 bg-gym-bg rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          backgroundColor: src.color,
-                          width: `${(src.count / maxCount) * 100}%`,
-                        }}
-                      />
-                    </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Card className="bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-sm">Retention Cohorts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={retentionChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis
+                  dataKey="period"
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  stroke="#64748B"
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    border: "1px solid #1E293B",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: 11 }}
+                  formatter={(value: string) => (
+                    <span className="text-muted-foreground">{value}</span>
+                  )}
+                />
+                {data.retentionCurves.map((curve, index) => (
+                  <Line
+                    key={curve.cohort}
+                    type="monotone"
+                    dataKey={curve.cohort}
+                    stroke={RETENTION_COLORS[index % RETENTION_COLORS.length]}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/70 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-sm">Top Risk Members</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {data.topRiskMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="rounded-lg border border-border bg-background p-3"
+                >
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-foreground">
+                      {member.name}
+                    </p>
+                    <Badge variant={getRiskBadgeVariant(member.riskLevel)}>
+                      {member.riskScore}%
+                    </Badge>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Member Plans */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Member Plans
-          </h3>
-          <div className="space-y-3">
-            {memberPlans.map((p) => (
-              <div key={p.plan}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gym-text-secondary">
-                    {p.plan}
-                  </span>
-                  <span className="text-sm font-bold text-gym-text">
-                    {p.count}
-                  </span>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      {member.plan} plan &middot;{" "}
+                      <Badge
+                        variant={getRiskBadgeVariant(member.riskLevel)}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {member.riskLevel} risk
+                      </Badge>
+                    </p>
+                    <p>
+                      {member.monthlyVisits} visits/month &middot;{" "}
+                      <Badge
+                        variant={getBillingBadgeVariant(member.billingStatus)}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {member.billingStatus}
+                      </Badge>
+                    </p>
+                    <p>Last check-in: {formatDateTime(member.lastCheckIn)}</p>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-gym-bg rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      backgroundColor: p.color,
-                      width: `${totalMembers > 0 ? (p.count / totalMembers) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Risk Distribution */}
-        <div className="bg-gym-card border border-gym-border rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gym-text mb-4">
-            Risk Distribution
-          </h3>
-          <div className="space-y-3">
-            {riskDistribution.map((r) => (
-              <div key={r.level}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gym-text-secondary">
-                    {r.level}
-                  </span>
-                  <span className="text-sm font-bold text-gym-text">
-                    {r.count}
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-gym-bg rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      backgroundColor: r.color,
-                      width: `${totalMembers > 0 ? (r.count / totalMembers) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

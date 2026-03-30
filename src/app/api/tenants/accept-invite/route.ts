@@ -7,6 +7,7 @@ import {
   jsonWithSession,
   validateJsonMutation,
 } from "@/lib/auth-api";
+import { recordAuthActivity } from "@/lib/auth-store";
 import { isValidPassword, splitFullName } from "@/lib/auth-utils";
 
 type AcceptInviteBody = {
@@ -98,7 +99,16 @@ export async function POST(request: Request) {
       .where(eq(staffMemberships.id, invite.membershipId));
   });
 
+  await recordAuthActivity({
+    userId: invite.userId,
+    tenantId: invite.tenantId,
+    type: "invite-accepted",
+    description: `Accepted invite to ${invite.tenantName}`,
+    request,
+  });
+
   return jsonWithSession(
+    request,
     {
       ok: true,
       redirectTo: "/dashboard",

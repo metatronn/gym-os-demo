@@ -1,138 +1,210 @@
-/**
- * Report queries — tenant-scoped aggregation queries for the Reports page.
- *
- * PLACEHOLDER: This file defines the query signatures that will be implemented
- * once the DB layer (Drizzle ORM + Neon Postgres) is wired up. Each function
- * currently throws so that any accidental import fails loudly.
- *
- * When ready to implement, use:
- *   import { tenantDb } from "@/db/tenant";
- *   import { members, leads, payments, classes } from "@/db/schema";
- *   import { eq, and, gte, lte, sql, count } from "drizzle-orm";
- *
- * CRITICAL: Every query MUST use tenantFilter from tenantDb() to ensure
- * tenant isolation (WHERE tenant_id = ?).
- */
+import { desc, gte, lte } from "drizzle-orm";
+import { classes, leads, members, payments } from "@/db/schema";
+import { tenantDb, type TenantDb } from "@/db/tenant";
+import {
+  buildClassUtilization,
+  buildLeadFunnel,
+  buildMemberGrowthSeries,
+  buildMonthlyRevenueSeries,
+  buildRetentionCurves,
+  computeKPIs,
+  type ClassUtilization,
+  type FunnelStage,
+  type MemberGrowthMonth,
+  type MonthlyRevenue,
+  type ReportData,
+  type ReportDateRange,
+  type TopRiskMember,
+} from "@/lib/reporting";
 
-interface DateRange {
-  from: Date;
-  to: Date;
+type DateRange = ReportDateRange;
+
+async function loadMemberRows(tenant: TenantDb) {
+  return tenant.db
+    .select({
+      id: members.id,
+      name: members.name,
+      plan: members.plan,
+      status: members.status,
+      riskScore: members.riskScore,
+      riskLevel: members.riskLevel,
+      monthlyVisits: members.monthlyVisits,
+      billingStatus: members.billingStatus,
+      joinDate: members.joinDate,
+      lastCheckIn: members.lastCheckIn,
+    })
+    .from(members)
+    .where(tenant.tenantFilter(members));
 }
 
-// --- Member Growth ---
-
-export interface MemberGrowthRow {
-  month: string; // "2026-01"
-  newMembers: number;
-  churned: number;
+async function loadLeadRows(tenant: TenantDb, range: DateRange) {
+  return tenant.db
+    .select({
+      status: leads.status,
+      source: leads.source,
+      createdAt: leads.createdAt,
+    })
+    .from(leads)
+    .where(
+      tenant.tenantFilter(
+        leads,
+        gte(leads.createdAt, range.from),
+        lte(leads.createdAt, range.to),
+      ),
+    );
 }
 
-/**
- * Count members by createdAt month (new) and by status=cancelled with
- * updatedAt in range (churned).
- *
- * Implementation sketch:
- *   SELECT to_char(created_at, 'YYYY-MM') AS month, count(*) AS new_members
- *   FROM members
- *   WHERE tenant_id = ? AND created_at BETWEEN ? AND ?
- *   GROUP BY month
- *
- *   SELECT to_char(updated_at, 'YYYY-MM') AS month, count(*) AS churned
- *   FROM members
- *   WHERE tenant_id = ? AND status = 'cancelled' AND updated_at BETWEEN ? AND ?
- *   GROUP BY month
- */
-export async function memberGrowthByMonth(
-  _range: DateRange,
-): Promise<MemberGrowthRow[]> {
-  throw new Error(
-    "Not implemented — awaiting DB layer. Use buildMemberGrowthSeries() from src/lib/reporting.ts for mock data.",
-  );
+async function loadPaymentRows(tenant: TenantDb, range: DateRange) {
+  return tenant.db
+    .select({
+      amount: payments.amount,
+      status: payments.status,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .where(
+      tenant.tenantFilter(
+        payments,
+        gte(payments.createdAt, range.from),
+        lte(payments.createdAt, range.to),
+      ),
+    );
 }
 
-// --- Revenue by Month ---
+async function loadPaymentsForKpis(tenant: TenantDb, range: DateRange) {
+  const periodMs = range.to.getTime() - range.from.getTime();
+  const previousFrom = new Date(range.from.getTime() - periodMs);
 
-export interface RevenueRow {
-  month: string; // "2026-01"
-  revenue: number; // cents
+  return tenant.db
+    .select({
+      amount: payments.amount,
+      status: payments.status,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .where(
+      tenant.tenantFilter(
+        payments,
+        gte(payments.createdAt, previousFrom),
+        lte(payments.createdAt, range.to),
+      ),
+    );
 }
 
-/**
- * Sum payments.amount_cents by month within range where status = 'succeeded'.
- *
- * Implementation sketch:
- *   SELECT to_char(created_at, 'YYYY-MM') AS month, sum(amount_cents) AS revenue
- *   FROM payments
- *   WHERE tenant_id = ? AND status = 'succeeded' AND created_at BETWEEN ? AND ?
- *   GROUP BY month ORDER BY month
- */
-export async function revenueByMonth(_range: DateRange): Promise<RevenueRow[]> {
-  throw new Error(
-    "Not implemented — awaiting DB layer. Use buildMonthlyRevenueSeries() from src/lib/reporting.ts for mock data.",
-  );
+async function loadClassRows(tenant: TenantDb) {
+  return tenant.db
+    .select({
+      name: classes.name,
+      capacity: classes.capacity,
+      enrolled: classes.enrolled,
+      time: classes.time,
+    })
+    .from(classes)
+    .where(tenant.tenantFilter(classes))
+    .orderBy(classes.name);
 }
 
-// --- Lead Conversion Funnel ---
+async function loadTopRiskMembers(tenant: TenantDb, limit: number) {
+  const rows = await tenant.db
+    .select({
+      id: members.id,
+      name: members.name,
+      plan: members.plan,
+      riskScore: members.riskScore,
+      riskLevel: members.riskLevel,
+      billingStatus: members.billingStatus,
+      monthlyVisits: members.monthlyVisits,
+      lastCheckIn: members.lastCheckIn,
+    })
+    .from(members)
+    .where(tenant.tenantFilter(members))
+    .orderBy(desc(members.riskScore), desc(members.lastCheckIn))
+    .limit(limit);
 
-export interface LeadFunnelRow {
-  status: string;
-  count: number;
+  return rows.map<TopRiskMember>((member) => ({
+    id: member.id,
+    name: member.name,
+    plan: member.plan,
+    riskScore: Number(member.riskScore.toFixed(1)),
+    riskLevel: member.riskLevel,
+    billingStatus: member.billingStatus,
+    monthlyVisits: member.monthlyVisits,
+    lastCheckIn: member.lastCheckIn?.toISOString() ?? null,
+  }));
 }
 
-/**
- * Count leads by status within the date range.
- *
- * Implementation sketch:
- *   SELECT status, count(*) AS count
- *   FROM leads
- *   WHERE tenant_id = ? AND created_at BETWEEN ? AND ?
- *   GROUP BY status
- */
+export async function revenueByMonth(
+  range: DateRange,
+): Promise<MonthlyRevenue[]> {
+  const tenant = await tenantDb();
+  const paymentRows = await loadPaymentRows(tenant, range);
+  return buildMonthlyRevenueSeries(paymentRows, range.from, range.to);
+}
+
+export async function memberGrowth(
+  range: DateRange,
+): Promise<MemberGrowthMonth[]> {
+  const tenant = await tenantDb();
+  const memberRows = await loadMemberRows(tenant);
+  return buildMemberGrowthSeries(memberRows, range.from, range.to);
+}
+
 export async function leadConversionFunnel(
-  _range: DateRange,
-): Promise<LeadFunnelRow[]> {
-  throw new Error(
-    "Not implemented — awaiting DB layer. Use buildLeadFunnel() from src/lib/reporting.ts for mock data.",
-  );
+  range: DateRange,
+): Promise<FunnelStage[]> {
+  const tenant = await tenantDb();
+  const leadRows = await loadLeadRows(tenant, range);
+  return buildLeadFunnel(leadRows, range.from, range.to);
 }
 
-// --- Class Utilization ---
-
-export interface ClassUtilRow {
-  name: string;
-  enrolled: number;
-  capacity: number;
+export async function classUtilization(): Promise<ClassUtilization[]> {
+  const tenant = await tenantDb();
+  const classRows = await loadClassRows(tenant);
+  return buildClassUtilization(classRows);
 }
 
-/**
- * Enrolled vs capacity for all active classes.
- *
- * Implementation sketch:
- *   SELECT name, enrolled, capacity
- *   FROM classes
- *   WHERE tenant_id = ?
- *   ORDER BY name
- */
-export async function classUtilization(): Promise<ClassUtilRow[]> {
-  throw new Error(
-    "Not implemented — awaiting DB layer. Use buildClassUtilization() from src/lib/reporting.ts for mock data.",
-  );
+export async function retentionCohorts(range: DateRange) {
+  const tenant = await tenantDb();
+  const memberRows = await loadMemberRows(tenant);
+  return buildRetentionCurves(memberRows, range.to);
 }
 
-// --- Aggregate report data ---
+export async function topRiskMembers(limit = 5) {
+  const tenant = await tenantDb();
+  return loadTopRiskMembers(tenant, limit);
+}
 
-/**
- * Fetch all report data for a given date range. This will replace the
- * buildReportData() call in page.tsx once the DB is available.
- *
- * Usage:
- *   const data = await getReportData({ from, to });
- *
- * The function should compose the above queries and return a shape compatible
- * with the ReportData interface from src/lib/reporting.ts.
- */
-export async function getReportData(_range: DateRange) {
-  throw new Error(
-    "Not implemented — awaiting DB layer. Use buildReportData() from src/lib/reporting.ts for mock data.",
-  );
+export async function getReportData(range: DateRange): Promise<ReportData> {
+  const tenant = await tenantDb();
+
+  const [
+    memberRows,
+    leadRows,
+    paymentRows,
+    paymentRowsForKpis,
+    classRows,
+    topRisk,
+  ] = await Promise.all([
+    loadMemberRows(tenant),
+    loadLeadRows(tenant, range),
+    loadPaymentRows(tenant, range),
+    loadPaymentsForKpis(tenant, range),
+    loadClassRows(tenant),
+    loadTopRiskMembers(tenant, 5),
+  ]);
+
+  return {
+    range: {
+      key: range.key,
+      from: range.from.toISOString(),
+      to: range.to.toISOString(),
+    },
+    kpis: computeKPIs(memberRows, leadRows, paymentRowsForKpis, range),
+    revenueSeries: buildMonthlyRevenueSeries(paymentRows, range.from, range.to),
+    memberGrowth: buildMemberGrowthSeries(memberRows, range.from, range.to),
+    leadFunnel: buildLeadFunnel(leadRows, range.from, range.to),
+    classUtilization: buildClassUtilization(classRows),
+    retentionCurves: buildRetentionCurves(memberRows, range.to),
+    topRiskMembers: topRisk,
+  };
 }

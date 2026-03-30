@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function POST() {
   const { orgId, userId } = await requireAuth();
 
-  const rl = consumeRateLimit(`checkout:${userId}`, {
+  const rl = await consumeRateLimit(`checkout:${userId}`, {
     limit: 10,
     windowMs: 60_000,
   });

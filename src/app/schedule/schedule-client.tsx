@@ -1,16 +1,56 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Clock, Users, Plus, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Clock, Users, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ClassSession } from "@/db/schema/classes";
 import { createClass, updateClass, deleteClass } from "./actions";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const typeColors: Record<string, string> = {
-  boxing: "bg-red-500/20 text-red-400 border-red-500/30",
-  kickboxing: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  conditioning: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  fundamentals: "bg-green-500/20 text-green-400 border-green-500/30",
+  boxing: "border-l-destructive bg-destructive/10",
+  kickboxing: "border-l-warning bg-warning/10",
+  conditioning: "border-l-accent bg-accent/10",
+  fundamentals: "border-l-success bg-success/10",
+};
+
+const typeBadgeVariant: Record<
+  string,
+  "destructive" | "warning" | "accent" | "success"
+> = {
+  boxing: "destructive",
+  kickboxing: "warning",
+  conditioning: "accent",
+  fundamentals: "success",
 };
 
 const days = [
@@ -162,52 +202,59 @@ export default function ScheduleClient({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gym-text">Class Schedule</h1>
-          <p className="text-gym-text-muted text-sm mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Class Schedule</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {classes.length} classes this week &middot;{" "}
             {classes.reduce((a, c) => a + c.enrolled, 0)} total enrolled
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-gym-card border border-gym-border rounded-lg overflow-hidden">
-            <button
+          <div className="flex">
+            <Button
+              variant={view === "week" ? "default" : "outline"}
+              size="sm"
               onClick={() => setView("week")}
-              className={`px-3 py-2 text-xs font-medium ${view === "week" ? "bg-gym-primary text-white" : "text-gym-text-secondary"}`}
+              className="rounded-r-none"
             >
               Week
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={view === "list" ? "default" : "outline"}
+              size="sm"
               onClick={() => setView("list")}
-              className={`px-3 py-2 text-xs font-medium ${view === "list" ? "bg-gym-primary text-white" : "text-gym-text-secondary"}`}
+              className="rounded-l-none"
             >
               List
-            </button>
+            </Button>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Add Class
-          </button>
+          <Button onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Add Class
+          </Button>
         </div>
       </div>
 
       {/* Week Nav */}
-      <div className="flex items-center justify-between mb-6 bg-gym-card border border-gym-border rounded-xl p-3">
-        <button
-          onClick={() => setWeekOffset((current) => current - 1)}
-          className="p-1 hover:bg-gym-bg rounded"
-        >
-          <ChevronLeft className="w-5 h-5 text-gym-text-muted" />
-        </button>
-        <span className="text-sm font-medium text-gym-text">{weekLabel}</span>
-        <button
-          onClick={() => setWeekOffset((current) => current + 1)}
-          className="p-1 hover:bg-gym-bg rounded"
-        >
-          <ChevronRight className="w-5 h-5 text-gym-text-muted" />
-        </button>
-      </div>
+      <Card className="mb-6">
+        <CardContent className="flex items-center justify-between p-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setWeekOffset((current) => current - 1)}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm font-medium text-foreground">
+            {weekLabel}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setWeekOffset((current) => current + 1)}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </CardContent>
+      </Card>
 
       {view === "week" ? (
         /* Week Grid */
@@ -218,10 +265,16 @@ export default function ScheduleClient({
             return (
               <div key={day} className="min-h-[300px]">
                 <div
-                  className={`text-center mb-3 pb-2 border-b ${isToday ? "border-gym-primary" : "border-gym-border"}`}
+                  className={cn(
+                    "text-center mb-3 pb-2 border-b",
+                    isToday ? "border-primary" : "border-border",
+                  )}
                 >
                   <p
-                    className={`text-xs font-medium ${isToday ? "text-gym-primary" : "text-gym-text-muted"}`}
+                    className={cn(
+                      "text-xs font-medium",
+                      isToday ? "text-primary" : "text-muted-foreground",
+                    )}
                   >
                     {day.slice(0, 3).toUpperCase()}
                   </p>
@@ -232,45 +285,54 @@ export default function ScheduleClient({
                       ? Math.round((cls.enrolled / cls.capacity) * 100)
                       : 0;
                     return (
-                      <div
+                      <Card
                         key={cls.id}
                         onClick={() => openEdit(cls)}
-                        className={`p-2.5 rounded-lg border ${typeColors[cls.type ?? ""] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"} cursor-pointer hover:opacity-80 transition-opacity`}
+                        className={cn(
+                          "cursor-pointer hover:opacity-80 transition-opacity border-l-4 p-2.5",
+                          typeColors[cls.type ?? ""] ??
+                            "border-l-gray-500 bg-gray-500/10",
+                        )}
                       >
-                        <p className="text-xs font-semibold mb-1 leading-tight">
+                        <p className="text-xs font-semibold mb-1 leading-tight text-foreground">
                           {cls.name}
                         </p>
-                        <div className="flex items-center gap-1 text-[10px] opacity-80 mb-1">
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
                           <Clock className="w-3 h-3" />
                           <span>{cls.time}</span>
                           <span>&middot;</span>
                           <span>{cls.duration}m</span>
                         </div>
-                        <p className="text-[10px] opacity-70 mb-2">
+                        <p className="text-[10px] text-muted-foreground mb-2">
                           {cls.instructor}
                         </p>
                         <div className="flex items-center gap-1">
-                          <Users className="w-3 h-3 opacity-70" />
-                          <div className="flex-1 h-1.5 bg-black/20 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${fill >= 90 ? "bg-red-400" : fill >= 70 ? "bg-yellow-400" : "bg-green-400"}`}
-                              style={{ width: `${fill}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] opacity-70">
+                          <Users className="w-3 h-3 text-muted-foreground" />
+                          <Progress
+                            value={fill}
+                            className={cn(
+                              "h-1.5 flex-1",
+                              fill >= 90
+                                ? "[&>div]:bg-destructive"
+                                : fill >= 70
+                                  ? "[&>div]:bg-warning"
+                                  : "[&>div]:bg-success",
+                            )}
+                          />
+                          <span className="text-[10px] text-muted-foreground">
                             {cls.enrolled}/{cls.capacity}
                           </span>
                         </div>
                         {cls.waitlist > 0 && (
-                          <p className="text-[10px] text-yellow-300 mt-1">
+                          <p className="text-[10px] text-warning mt-1">
                             {cls.waitlist} waitlisted
                           </p>
                         )}
-                      </div>
+                      </Card>
                     );
                   })}
                   {dayClasses.length === 0 && (
-                    <p className="text-xs text-gym-text-muted text-center pt-8">
+                    <p className="text-xs text-muted-foreground text-center pt-8">
                       No classes
                     </p>
                   )}
@@ -281,239 +343,228 @@ export default function ScheduleClient({
         </div>
       ) : (
         /* List View */
-        <div className="bg-gym-card border border-gym-border rounded-xl overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr className="border-b border-gym-border">
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Class
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Day
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Time
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Instructor
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Capacity
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Type
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Class</TableHead>
+                <TableHead>Day</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Instructor</TableHead>
+                <TableHead>Capacity</TableHead>
+                <TableHead>Type</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {classes.map((cls) => {
                 const fill = cls.capacity
                   ? Math.round((cls.enrolled / cls.capacity) * 100)
                   : 0;
                 return (
-                  <tr
+                  <TableRow
                     key={cls.id}
                     onClick={() => openEdit(cls)}
-                    className="border-b border-gym-border/50 hover:bg-gym-bg/50 cursor-pointer"
+                    className="cursor-pointer"
                   >
-                    <td className="p-3 text-sm font-medium text-gym-text">
+                    <TableCell className="font-medium text-foreground">
                       {cls.name}
-                    </td>
-                    <td className="p-3 text-sm text-gym-text-secondary">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {cls.dayOfWeek}
-                    </td>
-                    <td className="p-3 text-sm text-gym-text-secondary">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {cls.time} ({cls.duration}m)
-                    </td>
-                    <td className="p-3 text-sm text-gym-text-secondary">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {cls.instructor}
-                    </td>
-                    <td className="p-3">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-gym-bg rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${fill >= 90 ? "bg-red-400" : fill >= 70 ? "bg-yellow-400" : "bg-green-400"}`}
-                            style={{ width: `${fill}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gym-text-muted">
+                        <Progress
+                          value={fill}
+                          className={cn(
+                            "h-1.5 w-16",
+                            fill >= 90
+                              ? "[&>div]:bg-destructive"
+                              : fill >= 70
+                                ? "[&>div]:bg-warning"
+                                : "[&>div]:bg-success",
+                          )}
+                        />
+                        <span className="text-xs text-muted-foreground">
                           {cls.enrolled}/{cls.capacity}
                         </span>
                       </div>
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full capitalize border ${typeColors[cls.type ?? ""] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"}`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          typeBadgeVariant[cls.type ?? ""] ?? "secondary"
+                        }
+                        className="capitalize"
                       >
                         {cls.type}
-                      </span>
-                    </td>
-                  </tr>
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       {/* Create/Edit Modal */}
-      {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-gym-card border border-gym-border rounded-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gym-text">
-                {modalMode === "create" ? "Add Class" : "Edit Class"}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="p-1 hover:bg-gym-bg rounded"
-              >
-                <X className="w-5 h-5 text-gym-text-muted" />
-              </button>
+      <Dialog
+        open={modalMode !== null}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {modalMode === "create" ? "Add Class" : "Edit Class"}
+            </DialogTitle>
+            <DialogDescription>
+              {modalMode === "create"
+                ? "Schedule a new class session."
+                : "Update class details."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="class-name">Class Name</Label>
+              <Input
+                id="class-name"
+                required
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="e.g. Advanced Boxing"
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                  Class Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Day</Label>
+                <Select
+                  value={form.dayOfWeek}
+                  onValueChange={(value) =>
+                    setForm((f) => ({ ...f, dayOfWeek: value }))
                   }
-                  className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  placeholder="e.g. Advanced Boxing"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                    Day
-                  </label>
-                  <select
-                    value={form.dayOfWeek}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, dayOfWeek: e.target.value }))
-                    }
-                    className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  >
-                    {days.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                    Time
-                  </label>
-                  <input
-                    type="text"
-                    value={form.time}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, time: e.target.value }))
-                    }
-                    className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                    placeholder="6:00 PM"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                    Type
-                  </label>
-                  <select
-                    value={form.type}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, type: e.target.value }))
-                    }
-                    className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  >
-                    {classTypes.map((t) => (
-                      <option key={t} value={t} className="capitalize">
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                    Duration (min)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.duration}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, duration: e.target.value }))
-                    }
-                    className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                  Instructor
-                </label>
-                <input
-                  type="text"
-                  value={form.instructor}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, instructor: e.target.value }))
-                  }
-                  className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  placeholder="e.g. Marcus Johnson"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gym-text-muted mb-1">
-                  Capacity
-                </label>
-                <input
-                  type="number"
-                  value={form.capacity}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, capacity: e.target.value }))
-                  }
-                  className="w-full bg-gym-bg border border-gym-border rounded-lg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="flex-1 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                 >
-                  {isPending
-                    ? "Saving..."
-                    : modalMode === "create"
-                      ? "Add Class"
-                      : "Save Changes"}
-                </button>
-                {modalMode === "edit" && (
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={isPending}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 border border-red-500/30 transition-colors disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                )}
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {days.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {d}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <div className="space-y-2">
+                <Label htmlFor="class-time">Time</Label>
+                <Input
+                  id="class-time"
+                  value={form.time}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, time: e.target.value }))
+                  }
+                  placeholder="6:00 PM"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={form.type}
+                  onValueChange={(value) =>
+                    setForm((f) => ({ ...f, type: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classTypes.map((t) => (
+                      <SelectItem key={t} value={t} className="capitalize">
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-duration">Duration (min)</Label>
+                <Input
+                  id="class-duration"
+                  type="number"
+                  value={form.duration}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, duration: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="class-instructor">Instructor</Label>
+              <Input
+                id="class-instructor"
+                value={form.instructor}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, instructor: e.target.value }))
+                }
+                placeholder="e.g. Marcus Johnson"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="class-capacity">Capacity</Label>
+              <Input
+                id="class-capacity"
+                type="number"
+                value={form.capacity}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, capacity: e.target.value }))
+                }
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              {modalMode === "edit" && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isPending}
+                  className="sm:mr-auto"
+                >
+                  Delete
+                </Button>
+              )}
+              <Button type="button" variant="outline" onClick={closeModal}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending
+                  ? "Saving..."
+                  : modalMode === "create"
+                    ? "Add Class"
+                    : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

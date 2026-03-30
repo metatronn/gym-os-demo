@@ -10,11 +10,39 @@ import {
   CheckCircle2,
   Circle,
   Clock,
-  X,
   ArrowRight,
   Pencil,
   Trash2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 
 type TaskStatus = Task["status"];
 type TaskPriority = Task["priority"];
@@ -37,32 +65,28 @@ const columnConfig: Record<
 > = {
   todo: {
     label: "To Do",
-    color: "border-t-blue-500",
-    icon: <Circle className="w-4 h-4 text-blue-400" />,
+    color: "border-t-primary",
+    icon: <Circle className="w-4 h-4 text-primary" />,
   },
   "in-progress": {
     label: "In Progress",
-    color: "border-t-yellow-500",
-    icon: <Clock className="w-4 h-4 text-yellow-400" />,
+    color: "border-t-warning",
+    icon: <Clock className="w-4 h-4 text-warning" />,
   },
   done: {
     label: "Done",
-    color: "border-t-green-500",
-    icon: <CheckCircle2 className="w-4 h-4 text-green-400" />,
+    color: "border-t-success",
+    icon: <CheckCircle2 className="w-4 h-4 text-success" />,
   },
 };
 
-const priorityColors: Record<TaskPriority, string> = {
-  high: "bg-red-500/20 text-red-400",
-  medium: "bg-yellow-500/20 text-yellow-400",
-  low: "bg-green-500/20 text-green-400",
-};
-
-const categoryColors: Record<NonNullable<TaskCategory>, string> = {
-  "follow-up": "bg-blue-500/10 text-blue-400",
-  billing: "bg-orange-500/10 text-orange-400",
-  operations: "bg-purple-500/10 text-purple-400",
-  coaching: "bg-cyan-500/10 text-cyan-400",
+const priorityBadgeVariant: Record<
+  TaskPriority,
+  "destructive" | "warning" | "success"
+> = {
+  high: "destructive",
+  medium: "warning",
+  low: "success",
 };
 
 const statusOrder: TaskStatus[] = ["todo", "in-progress", "done"];
@@ -224,40 +248,33 @@ export default function TasksClient({ tasks }: TasksClientProps) {
     <div className="p-4 lg:p-6 overflow-auto h-full">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gym-text">Tasks</h1>
-          <p className="text-gym-text-muted text-sm mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {openTaskCount} open &middot; {highPriorityCount} high priority
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-gym-card border border-gym-border rounded-lg overflow-hidden">
-            <button
+          <div className="flex rounded-lg overflow-hidden border border-border">
+            <Button
+              variant={view === "board" ? "default" : "ghost"}
+              size="sm"
               onClick={() => setView("board")}
-              className={`px-3 py-2 text-xs font-medium ${
-                view === "board"
-                  ? "bg-gym-primary text-white"
-                  : "text-gym-text-secondary"
-              }`}
+              className="rounded-none"
             >
               Board
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={view === "list" ? "default" : "ghost"}
+              size="sm"
               onClick={() => setView("list")}
-              className={`px-3 py-2 text-xs font-medium ${
-                view === "list"
-                  ? "bg-gym-primary text-white"
-                  : "text-gym-text-secondary"
-              }`}
+              className="rounded-none"
             >
               List
-            </button>
+            </Button>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Add Task
-          </button>
+          <Button onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-2" /> Add Task
+          </Button>
         </div>
       </div>
 
@@ -270,394 +287,368 @@ export default function TasksClient({ tasks }: TasksClientProps) {
             );
 
             return (
-              <div
+              <Card
                 key={status}
-                className={`bg-gym-card/50 border border-gym-border rounded-xl border-t-2 ${config.color}`}
+                className={cn("bg-card/50 border-t-2", config.color)}
               >
-                <div className="p-3 flex items-center justify-between border-b border-gym-border">
+                <div className="p-3 flex items-center justify-between border-b border-border">
                   <div className="flex items-center gap-2">
                     {config.icon}
-                    <span className="text-sm font-medium text-gym-text">
+                    <span className="text-sm font-medium text-foreground">
                       {config.label}
                     </span>
-                    <span className="text-xs text-gym-text-muted bg-gym-bg px-2 py-0.5 rounded-full">
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5">
                       {columnTasks.length}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
-                <div className="p-3 space-y-2">
+                <CardContent className="p-3 space-y-2">
                   {columnTasks.map((task) => {
                     const upcomingStatus = nextStatus(task.status);
 
                     return (
-                      <div
+                      <Card
                         key={task.id}
-                        className="p-3 bg-gym-card border border-gym-border rounded-lg hover:border-gym-primary/50 transition-colors"
+                        className="hover:border-primary/50 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <button
-                            onClick={() => openEdit(task)}
-                            className="text-left"
-                          >
-                            <p className="text-sm font-medium text-gym-text leading-tight">
-                              {task.title}
-                            </p>
-                          </button>
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 capitalize ${priorityColors[task.priority]}`}
-                          >
-                            {task.priority}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {task.category ? (
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded capitalize ${categoryColors[task.category]}`}
-                            >
-                              {task.category}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gym-border/50">
-                          <div className="flex items-center gap-1 text-[10px] text-gym-text-muted">
-                            <User className="w-3 h-3" />
-                            <span>{task.assignedTo ?? "Unassigned"}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[10px] text-gym-text-muted">
-                            <Calendar className="w-3 h-3" />
-                            <span>{formatDate(task.dueDate)}</span>
-                          </div>
-                        </div>
-                        <div className="mt-3 flex items-center gap-2">
-                          <button
-                            onClick={() => openEdit(task)}
-                            className="flex-1 rounded-lg border border-gym-border px-3 py-2 text-xs font-medium text-gym-text hover:bg-gym-bg transition-colors"
-                          >
-                            <span className="inline-flex items-center gap-1">
-                              <Pencil className="w-3.5 h-3.5" />
-                              Edit
-                            </span>
-                          </button>
-                          {upcomingStatus ? (
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between gap-3 mb-2">
                             <button
-                              onClick={() =>
-                                handleQuickStatus(task, upcomingStatus)
-                              }
-                              disabled={isPending}
-                              className="flex-1 rounded-lg bg-gym-primary px-3 py-2 text-xs font-medium text-white hover:bg-gym-primary/85 transition-colors disabled:opacity-50"
+                              onClick={() => openEdit(task)}
+                              className="text-left"
                             >
-                              <span className="inline-flex items-center gap-1">
-                                <ArrowRight className="w-3.5 h-3.5" />
-                                {columnConfig[upcomingStatus].label}
-                              </span>
+                              <p className="text-sm font-medium text-foreground leading-tight">
+                                {task.title}
+                              </p>
                             </button>
-                          ) : null}
-                        </div>
-                      </div>
+                            <Badge
+                              variant={priorityBadgeVariant[task.priority]}
+                              className="text-[10px] px-1.5 py-0 flex-shrink-0 capitalize"
+                            >
+                              {task.priority}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {task.category ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 capitalize"
+                              >
+                                {task.category}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <User className="w-3 h-3" />
+                              <span>{task.assignedTo ?? "Unassigned"}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDate(task.dueDate)}</span>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => openEdit(task)}
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-1" />
+                              Edit
+                            </Button>
+                            {upcomingStatus ? (
+                              <Button
+                                size="sm"
+                                className="flex-1"
+                                onClick={() =>
+                                  handleQuickStatus(task, upcomingStatus)
+                                }
+                                disabled={isPending}
+                              >
+                                <ArrowRight className="w-3.5 h-3.5 mr-1" />
+                                {columnConfig[upcomingStatus].label}
+                              </Button>
+                            ) : null}
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
                   {columnTasks.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-gym-text-muted border border-dashed border-gym-border rounded-lg">
+                    <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
                       No tasks
                     </div>
                   ) : null}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
       ) : (
-        <div className="bg-gym-card border border-gym-border rounded-xl overflow-x-auto">
-          <table className="w-full min-w-[840px]">
-            <thead>
-              <tr className="border-b border-gym-border">
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Task
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Priority
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Category
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Assigned
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Due
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Status
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs uppercase">Task</TableHead>
+                <TableHead className="text-xs uppercase">Priority</TableHead>
+                <TableHead className="text-xs uppercase">Category</TableHead>
+                <TableHead className="text-xs uppercase">Assigned</TableHead>
+                <TableHead className="text-xs uppercase">Due</TableHead>
+                <TableHead className="text-xs uppercase">Status</TableHead>
+                <TableHead className="text-xs uppercase">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {taskItems.map((task) => {
                 const upcomingStatus = nextStatus(task.status);
 
                 return (
-                  <tr
-                    key={task.id}
-                    className="border-b border-gym-border/50 hover:bg-gym-bg/50"
-                  >
-                    <td className="p-3">
+                  <TableRow key={task.id}>
+                    <TableCell>
                       <button
                         onClick={() => openEdit(task)}
-                        className="text-sm font-medium text-gym-text text-left"
+                        className="text-sm font-medium text-foreground text-left"
                       >
                         {task.title}
                       </button>
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full capitalize ${priorityColors[task.priority]}`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={priorityBadgeVariant[task.priority]}
+                        className="capitalize"
                       >
                         {task.priority}
-                      </span>
-                    </td>
-                    <td className="p-3">
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       {task.category ? (
-                        <span
-                          className={`text-xs px-2 py-1 rounded capitalize ${categoryColors[task.category]}`}
-                        >
+                        <Badge variant="outline" className="capitalize">
                           {task.category}
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="text-xs text-gym-text-muted">-</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
-                    </td>
-                    <td className="p-3 text-xs text-gym-text-secondary">
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {task.assignedTo ?? "Unassigned"}
-                    </td>
-                    <td className="p-3 text-xs text-gym-text-muted">
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {formatDate(task.dueDate)}
-                    </td>
-                    <td className="p-3">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-1.5">
                         {columnConfig[task.status].icon}
-                        <span className="text-xs text-gym-text-secondary capitalize">
+                        <span className="text-xs text-muted-foreground capitalize">
                           {task.status}
                         </span>
                       </div>
-                    </td>
-                    <td className="p-3">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        <button
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => openEdit(task)}
-                          className="rounded-lg border border-gym-border px-2.5 py-1.5 text-xs font-medium text-gym-text hover:bg-gym-bg transition-colors"
                         >
                           Edit
-                        </button>
+                        </Button>
                         {upcomingStatus ? (
-                          <button
+                          <Button
+                            size="sm"
                             onClick={() =>
                               handleQuickStatus(task, upcomingStatus)
                             }
                             disabled={isPending}
-                            className="rounded-lg bg-gym-primary px-2.5 py-1.5 text-xs font-medium text-white hover:bg-gym-primary/85 transition-colors disabled:opacity-50"
                           >
                             {columnConfig[upcomingStatus].label}
-                          </button>
+                          </Button>
                         ) : null}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
-      {modalMode ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-gym-border bg-gym-card p-6">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gym-text">
-                  {modalMode === "create" ? "Add Task" : "Edit Task"}
-                </h2>
-                <p className="text-sm text-gym-text-muted mt-1">
-                  Keep operations visible and assigned.
-                </p>
-              </div>
-              <button
-                onClick={closeModal}
-                className="rounded-lg p-1 hover:bg-gym-bg transition-colors"
-              >
-                <X className="w-4 h-4 text-gym-text-muted" />
-              </button>
+      <Dialog
+        open={modalMode !== null}
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {modalMode === "create" ? "Add Task" : "Edit Task"}
+            </DialogTitle>
+            <DialogDescription>
+              Keep operations visible and assigned.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="task-title">Title</Label>
+              <Input
+                id="task-title"
+                type="text"
+                value={form.title}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    title: event.target.value,
+                  }))
+                }
+                placeholder="Follow up with first-time trial lead"
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs text-gym-text-muted">
-                  Title
-                </label>
-                <input
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="task-assigned">Assigned To</Label>
+                <Input
+                  id="task-assigned"
                   type="text"
-                  value={form.title}
+                  value={form.assignedTo}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      title: event.target.value,
+                      assignedTo: event.target.value,
                     }))
                   }
-                  className="w-full rounded-lg border border-gym-border bg-gym-bg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  placeholder="Follow up with first-time trial lead"
+                  placeholder="Front desk"
                 />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1 block text-xs text-gym-text-muted">
-                    Assigned To
-                  </label>
-                  <input
-                    type="text"
-                    value={form.assignedTo}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        assignedTo: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gym-border bg-gym-bg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                    placeholder="Front desk"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-gym-text-muted">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={form.dueDate}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        dueDate: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gym-border bg-gym-bg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-due">Due Date</Label>
+                <Input
+                  id="task-due"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      dueDate: event.target.value,
+                    }))
+                  }
+                />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="mb-1 block text-xs text-gym-text-muted">
-                    Priority
-                  </label>
-                  <select
-                    value={form.priority}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        priority: event.target.value as TaskPriority,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gym-border bg-gym-bg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-gym-text-muted">
-                    Status
-                  </label>
-                  <select
-                    value={form.status}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        status: event.target.value as TaskStatus,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gym-border bg-gym-bg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-gym-text-muted">
-                    Category
-                  </label>
-                  <select
-                    value={form.category ?? ""}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        category: event.target.value
-                          ? (event.target.value as NonNullable<TaskCategory>)
-                          : null,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gym-border bg-gym-bg px-3 py-2 text-sm text-gym-text focus:outline-none focus:border-gym-primary"
-                  >
-                    <option value="">None</option>
-                    <option value="follow-up">Follow-up</option>
-                    <option value="billing">Billing</option>
-                    <option value="operations">Operations</option>
-                    <option value="coaching">Coaching</option>
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select
+                  value={form.priority}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      priority: value as TaskPriority,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={form.status}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      status: value as TaskStatus,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todo">To Do</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="done">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={form.category ?? "__none__"}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      category:
+                        value === "__none__"
+                          ? null
+                          : (value as NonNullable<TaskCategory>),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    <SelectItem value="follow-up">Follow-up</SelectItem>
+                    <SelectItem value="billing">Billing</SelectItem>
+                    <SelectItem value="operations">Operations</SelectItem>
+                    <SelectItem value="coaching">Coaching</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-              {formError ? (
-                <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                  {formError}
-                </div>
-              ) : null}
+            {formError ? (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {formError}
+              </div>
+            ) : null}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div>
-                  {modalMode === "edit" && editingTaskId ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(editingTaskId)}
-                      disabled={isPending}
-                      className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/15 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
+            <DialogFooter className="flex-wrap justify-between gap-3">
+              <div>
+                {modalMode === "edit" && editingTaskId ? (
+                  <Button
                     type="button"
-                    onClick={closeModal}
-                    className="rounded-lg border border-gym-border px-4 py-2 text-sm font-medium text-gym-text hover:bg-gym-bg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
+                    variant="destructive"
+                    onClick={() => handleDelete(editingTaskId)}
                     disabled={isPending}
-                    className="rounded-lg bg-gym-primary px-4 py-2 text-sm font-medium text-white hover:bg-gym-primary/85 transition-colors disabled:opacity-50"
                   >
-                    {isPending
-                      ? modalMode === "create"
-                        ? "Creating..."
-                        : "Saving..."
-                      : modalMode === "create"
-                        ? "Create Task"
-                        : "Save Changes"}
-                  </button>
-                </div>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                ) : null}
               </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+              <div className="flex items-center gap-3">
+                <Button type="button" variant="outline" onClick={closeModal}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending
+                    ? modalMode === "create"
+                      ? "Creating..."
+                      : "Saving..."
+                    : modalMode === "create"
+                      ? "Create Task"
+                      : "Save Changes"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

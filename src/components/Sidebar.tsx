@@ -17,8 +17,20 @@ import {
   Menu,
   X,
   LogOut,
-  RefreshCw,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -62,6 +74,24 @@ type SessionPayload = {
     role: string;
   }>;
 };
+
+function getInitials(
+  name: string | null | undefined,
+  email: string | null | undefined,
+): string {
+  if (name) {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  if (email) {
+    return email[0].toUpperCase();
+  }
+  return "?";
+}
 
 function NativeSidebarFooter() {
   const router = useRouter();
@@ -175,66 +205,77 @@ function NativeSidebarFooter() {
 
   return (
     <>
-      <p className="mb-3 text-xs text-gym-text-muted">Workspace</p>
+      <p className="mb-3 text-xs text-muted-foreground">Workspace</p>
 
       <div className="space-y-3">
-        <div className="rounded-xl border border-gym-border bg-gym-card/70 p-3">
-          <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-gym-text-muted">
+        <div className="rounded-xl border border-border bg-card/70 p-3">
+          <label className="mb-2 block text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Active gym
           </label>
-          <div className="relative">
-            <select
-              value={session?.activeTenant?.tenantId ?? ""}
-              onChange={(event) => void handleTenantSwitch(event.target.value)}
-              disabled={
-                switching || !session || session.memberships.length === 0
-              }
-              className="w-full appearance-none rounded-lg border border-gym-border bg-gym-bg px-3 py-2 pr-10 text-sm text-gym-text outline-none transition-colors focus:border-gym-primary disabled:cursor-not-allowed disabled:opacity-60"
+          <Select
+            value={session?.activeTenant?.tenantId ?? ""}
+            onValueChange={(value) => void handleTenantSwitch(value)}
+            disabled={switching || !session || session.memberships.length === 0}
+          >
+            <SelectTrigger
+              className={cn("w-full", switching && "[&>svg]:animate-spin")}
             >
+              <SelectValue placeholder="No gyms yet" />
+            </SelectTrigger>
+            <SelectContent>
               {session?.memberships.length ? (
                 session.memberships.map((membership) => (
-                  <option key={membership.tenantId} value={membership.tenantId}>
+                  <SelectItem
+                    key={membership.tenantId}
+                    value={membership.tenantId}
+                  >
                     {membership.tenantName}
-                  </option>
+                  </SelectItem>
                 ))
               ) : (
-                <option value="">No gyms yet</option>
+                <SelectItem value="__none__" disabled>
+                  No gyms yet
+                </SelectItem>
               )}
-            </select>
-            <RefreshCw
-              size={14}
-              className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gym-text-muted ${
-                switching ? "animate-spin" : ""
-              }`}
-            />
-          </div>
+            </SelectContent>
+          </Select>
 
-          <p className="mt-2 truncate text-xs text-gym-text-muted">
+          <Badge variant="secondary" className="mt-2">
             {session?.activeTenant?.role ?? "Create a gym to get started"}
-          </p>
+          </Badge>
         </div>
 
-        <div className="rounded-xl border border-gym-border bg-gym-card/70 p-3">
-          <p className="truncate text-sm font-medium text-gym-text">
-            {session?.user?.fullName ?? session?.user?.email ?? "Signed in"}
-          </p>
-          <p className="mt-1 truncate text-xs text-gym-text-muted">
-            {session?.user?.email ?? "Loading account"}
-          </p>
+        <div className="rounded-xl border border-border bg-card/70 p-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs">
+                {getInitials(session?.user?.fullName, session?.user?.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {session?.user?.fullName ?? session?.user?.email ?? "Signed in"}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {session?.user?.email ?? "Loading account"}
+              </p>
+            </div>
+          </div>
 
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => void handleSignOut()}
             disabled={signingOut}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gym-border px-3 py-2 text-sm text-gym-text-secondary transition-colors hover:bg-gym-bg disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-3"
           >
             <LogOut size={14} />
             {signingOut ? "Signing out..." : "Sign out"}
-          </button>
+          </Button>
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-3 py-2 text-xs text-gym-danger">
+          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {error}
           </div>
         ) : null}
@@ -250,17 +291,18 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 lg:hidden bg-gym-sidebar border-b border-gym-border h-14 flex items-center justify-between px-4">
+      <header className="fixed top-0 left-0 right-0 z-50 lg:hidden bg-sidebar border-b border-border h-14 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-bold text-gym-text">GYM</span>
-          <span className="text-xl font-bold text-gym-primary">OS</span>
+          <span className="text-xl font-bold text-foreground">GYM</span>
+          <span className="text-xl font-bold text-primary">OS</span>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 text-gym-text-secondary hover:text-gym-text rounded-lg hover:bg-gym-card transition-colors"
         >
           {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        </Button>
       </header>
 
       {/* Mobile Overlay */}
@@ -273,23 +315,26 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-14 left-0 bottom-0 z-40 w-64 bg-gym-sidebar border-r border-gym-border flex flex-col transform transition-transform duration-200 ease-in-out lg:static lg:top-0 lg:transform-none lg:h-screen ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={cn(
+          "fixed top-14 left-0 bottom-0 z-40 w-64 bg-sidebar border-r border-border flex flex-col transform transition-transform duration-200 ease-in-out lg:static lg:top-0 lg:transform-none lg:h-screen",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        )}
       >
         {/* Logo - desktop only */}
-        <div className="hidden lg:block p-6 border-b border-gym-border">
+        <div className="hidden lg:block p-6">
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-gym-text">GYM</span>
-            <span className="text-xl font-bold text-gym-primary">OS</span>
+            <span className="text-xl font-bold text-foreground">GYM</span>
+            <span className="text-xl font-bold text-primary">OS</span>
           </div>
-          <p className="text-xs text-gym-text-muted mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             AI Operating System
           </p>
         </div>
 
+        <Separator className="hidden lg:block" />
+
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-6">
+        <ScrollArea className="flex-1 py-6">
           <ul className="space-y-1 px-3">
             {navItems.map((item) => {
               const isActive =
@@ -299,23 +344,26 @@ export default function Sidebar() {
                   <Link
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
                       isActive
-                        ? "bg-gym-primary text-white"
-                        : "text-gym-text-secondary hover:bg-gym-card"
-                    }`}
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-secondary-foreground",
+                    )}
                   >
                     {item.icon}
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <span>{item.label}</span>
                   </Link>
                 </li>
               );
             })}
           </ul>
-        </nav>
+        </ScrollArea>
 
-        {/* Agents Online */}
-        <div className="p-6 border-t border-gym-border">
+        <Separator />
+
+        {/* Workspace Footer */}
+        <div className="p-6">
           <NativeSidebarFooter />
         </div>
       </aside>

@@ -18,13 +18,13 @@ export default function AcceptInvitePage({
         footer={
           <p>
             Already have an account?{" "}
-            <Link href="/sign-in" className="text-gym-accent hover:underline">
+            <Link href="/sign-in" className="text-primary hover:underline">
               Sign in
             </Link>
           </p>
         }
       >
-        <div className="rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           The invite token is missing.
         </div>
       </AuthShell>

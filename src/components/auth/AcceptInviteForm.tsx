@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type AcceptInviteFormProps = {
   token: string;
@@ -74,64 +77,62 @@ export default function AcceptInviteForm({ token }: AcceptInviteFormProps) {
       footer={
         <p>
           Need to use a different account?{" "}
-          <Link href="/sign-in" className="text-gym-accent hover:underline">
-            Sign in
-          </Link>
+          <Button variant="link" asChild className="h-auto p-0">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
         </p>
       }
     >
       {error ? (
-        <div className="mb-5 rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
       {hint ? (
-        <div className="mb-5 rounded-xl border border-gym-primary/20 bg-gym-primary/10 px-4 py-3 text-sm text-gym-accent">
+        <div className="mb-5 rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
           {hint}
         </div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
+        <div className="space-y-2">
+          <Label htmlFor="name">
             Full name
-            <span className="ml-2 text-xs text-gym-text-muted">(optional)</span>
-          </label>
-          <input
+            <span className="ml-2 text-xs text-muted-foreground">
+              (optional)
+            </span>
+          </Label>
+          <Input
+            id="name"
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
             autoComplete="name"
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Your name"
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
+        <div className="space-y-2">
+          <Label htmlFor="password">
             Password
-            <span className="ml-2 text-xs text-gym-text-muted">
+            <span className="ml-2 text-xs text-muted-foreground">
               (only required if you&apos;re new)
             </span>
-          </label>
-          <input
+          </Label>
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="new-password"
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="Set a password"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gym-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gym-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Joining workspace..." : "Accept invite"}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   );

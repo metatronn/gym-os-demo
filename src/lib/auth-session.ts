@@ -8,14 +8,16 @@ export const AUTH_USER_ID_HEADER = "x-user-id";
 export const AUTH_TENANT_ID_HEADER = "x-tenant-id";
 export const AUTH_ROLE_HEADER = "x-org-role";
 export const AUTH_TOKEN_VERSION_HEADER = "x-token-version";
+export const AUTH_SESSION_ID_HEADER = "x-session-id";
 
-const SESSION_TTL_SECONDS = 60 * 60 * 24;
+export const SESSION_TTL_SECONDS = 60 * 60 * 24;
 const encoder = new TextEncoder();
 
 export type SessionTokenPayload = JWTPayload & {
   sub: string;
   tid?: string;
   role?: string;
+  sid?: string;
   ver: number;
 };
 
@@ -48,16 +50,21 @@ function normalizePayload(payload: JWTPayload): SessionTokenPayload | null {
     return null;
   }
 
+  if (payload.sid !== undefined && typeof payload.sid !== "string") {
+    return null;
+  }
+
   return {
     ...payload,
     sub: payload.sub,
     tid: payload.tid as string | undefined,
     role: payload.role as string | undefined,
+    sid: payload.sid as string | undefined,
     ver: payload.ver,
   };
 }
 
-function sessionCookieOptions() {
+export function sessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
@@ -72,10 +79,12 @@ export async function createSessionToken(input: {
   tenantId?: string | null;
   role?: string | null;
   tokenVersion: number;
+  sessionId?: string | null;
 }) {
   return new SignJWT({
     tid: input.tenantId ?? undefined,
     role: input.role ?? undefined,
+    sid: input.sessionId ?? undefined,
     ver: input.tokenVersion,
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -104,6 +113,12 @@ export function buildAuthHeaders(
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(AUTH_USER_ID_HEADER, payload.sub);
   requestHeaders.set(AUTH_TOKEN_VERSION_HEADER, String(payload.ver));
+
+  if (payload.sid) {
+    requestHeaders.set(AUTH_SESSION_ID_HEADER, payload.sid);
+  } else {
+    requestHeaders.delete(AUTH_SESSION_ID_HEADER);
+  }
 
   if (payload.tid) {
     requestHeaders.set(AUTH_TENANT_ID_HEADER, payload.tid);

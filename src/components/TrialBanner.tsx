@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type SubscriptionPayload = {
   subscriptionStatus: string;
@@ -68,22 +70,32 @@ export function TrialBanner() {
 
   if (daysLeft <= 0) {
     return (
-      <div className="border-b border-gym-danger/20 bg-gym-danger/10 px-4 py-2 text-center text-sm text-gym-danger">
+      <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">
+        <Badge variant="destructive" className="mr-2">
+          Expired
+        </Badge>
         Your trial has expired.{" "}
-        <Link href="/billing" className="font-medium underline">
-          Upgrade now
-        </Link>{" "}
+        <Button
+          variant="link"
+          asChild
+          className="h-auto p-0 text-destructive font-medium"
+        >
+          <Link href="/billing">Upgrade now</Link>
+        </Button>{" "}
         to keep the gym online.
       </div>
     );
   }
 
   return (
-    <div className="border-b border-gym-primary/20 bg-gym-primary/10 px-4 py-2 text-center text-sm text-gym-accent">
+    <div className="border-b border-primary/20 bg-primary/10 px-4 py-2 text-center text-sm text-accent-foreground">
+      <Badge variant="default" className="mr-2">
+        Trial
+      </Badge>
       {daysLeft} day{daysLeft !== 1 ? "s" : ""} left in your free trial.{" "}
-      <Link href="/billing" className="font-medium underline">
-        Upgrade now
-      </Link>
+      <Button variant="link" asChild className="h-auto p-0 font-medium">
+        <Link href="/billing">Upgrade now</Link>
+      </Button>
       .
     </div>
   );

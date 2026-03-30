@@ -20,14 +20,14 @@ export default function ResetPasswordPage({
             Need a fresh link?{" "}
             <Link
               href="/forgot-password"
-              className="text-gym-accent hover:underline"
+              className="text-primary hover:underline"
             >
               Request another reset email
             </Link>
           </p>
         }
       >
-        <div className="rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           The password reset token is missing.
         </div>
       </AuthShell>

@@ -7,6 +7,7 @@ import {
   jsonWithSession,
   validateJsonMutation,
 } from "@/lib/auth-api";
+import { recordAuthActivity } from "@/lib/auth-store";
 
 type SwitchTenantBody = {
   tenantId?: string;
@@ -46,7 +47,16 @@ export async function POST(request: Request) {
     return jsonError(403, "You do not have access to that gym");
   }
 
+  await recordAuthActivity({
+    userId: auth.userId,
+    tenantId: membership.tenantId,
+    type: "tenant-switch",
+    description: "Switched active gym",
+    request,
+  });
+
   return jsonWithSession(
+    request,
     { ok: true },
     {
       userId: auth.userId,
@@ -54,5 +64,7 @@ export async function POST(request: Request) {
       role: membership.role,
       tokenVersion: auth.tokenVersion,
     },
+    200,
+    { reuseCurrentSession: true },
   );
 }

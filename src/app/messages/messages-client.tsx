@@ -16,6 +16,12 @@ import {
   User,
   ArrowLeft,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MessagesClientProps {
   messages: Message[];
@@ -77,64 +83,79 @@ export default function MessagesClient({
     <div className="flex h-full">
       {/* Conversation List -- hidden on mobile when a conversation is selected */}
       <div
-        className={`${selectedMsg ? "hidden lg:flex" : "flex"} w-full lg:w-[340px] border-r border-gym-border flex-col`}
+        className={`${selectedMsg ? "hidden lg:flex" : "flex"} w-full lg:w-[340px] border-r border-border flex-col`}
       >
-        <div className="p-4 border-b border-gym-border">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-lg font-bold text-gym-text">Messages</h1>
-            <span className="text-xs bg-gym-primary text-white px-2 py-0.5 rounded-full">
-              {unreadCount} new
-            </span>
+            <h1 className="text-lg font-bold text-foreground">Messages</h1>
+            <Badge>{unreadCount} new</Badge>
           </div>
           <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gym-text-muted" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
               type="text"
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gym-card border border-gym-border rounded-lg text-gym-text text-sm placeholder:text-gym-text-muted focus:outline-none focus:border-gym-primary"
+              className="pl-10"
             />
           </div>
-          <div className="flex bg-gym-card border border-gym-border rounded-lg overflow-hidden">
+          <div className="flex rounded-lg overflow-hidden border border-border">
             {(["all", "sms", "email"] as const).map((ch) => (
-              <button
+              <Button
                 key={ch}
+                variant={channelFilter === ch ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setChannelFilter(ch)}
-                className={`flex-1 px-2 py-1.5 text-xs font-medium capitalize ${channelFilter === ch ? "bg-gym-primary text-white" : "text-gym-text-secondary"}`}
+                className={cn(
+                  "flex-1 rounded-none capitalize",
+                  channelFilter === ch ? "" : "text-muted-foreground",
+                )}
               >
                 {ch === "all" ? "All" : ch.toUpperCase()}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
-        <div className="flex-1 overflow-auto">
+        <ScrollArea className="flex-1">
           {filtered.map((msg) => (
             <div
               key={msg.id}
               onClick={() => handleSelectMessage(msg.id)}
-              className={`p-3 border-b border-gym-border/50 cursor-pointer transition-colors ${selectedMsg === msg.id ? "bg-gym-primary/10 border-l-2 border-l-gym-primary" : "hover:bg-gym-bg/50"}`}
+              className={cn(
+                "p-3 border-b border-border/50 cursor-pointer transition-colors",
+                selectedMsg === msg.id
+                  ? "bg-primary/10 border-l-2 border-l-primary"
+                  : "hover:bg-secondary/50",
+              )}
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-10 h-10 bg-gym-primary/20 rounded-full flex items-center justify-center text-xs font-bold text-gym-primary">
-                    {msg.contactName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
+                  <Avatar>
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                      {msg.contactName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
                   {msg.unread && (
-                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-gym-primary rounded-full border-2 border-gym-card" />
+                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-primary rounded-full border-2 border-card" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-sm font-medium ${msg.unread ? "text-gym-text" : "text-gym-text-secondary"}`}
+                      className={cn(
+                        "text-sm font-medium",
+                        msg.unread
+                          ? "text-foreground"
+                          : "text-muted-foreground",
+                      )}
                     >
                       {msg.contactName}
                     </span>
-                    <span className="text-[10px] text-gym-text-muted">
+                    <span className="text-[10px] text-muted-foreground">
                       {new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -143,28 +164,36 @@ export default function MessagesClient({
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {msg.channel === "sms" ? (
-                      <MessageSquare className="w-3 h-3 text-gym-text-muted flex-shrink-0" />
+                      <MessageSquare className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                     ) : (
-                      <Mail className="w-3 h-3 text-gym-text-muted flex-shrink-0" />
+                      <Mail className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                     )}
                     <p
-                      className={`text-xs truncate ${msg.unread ? "text-gym-text-secondary font-medium" : "text-gym-text-muted"}`}
+                      className={cn(
+                        "text-xs truncate",
+                        msg.unread
+                          ? "text-muted-foreground font-medium"
+                          : "text-muted-foreground",
+                      )}
                     >
                       {msg.lastMessage}
                     </p>
                   </div>
                   {msg.contactType && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded mt-1 inline-block ${msg.contactType === "member" ? "bg-green-500/10 text-green-400" : "bg-blue-500/10 text-blue-400"}`}
+                    <Badge
+                      variant={
+                        msg.contactType === "member" ? "success" : "default"
+                      }
+                      className="mt-1 text-[10px] px-1.5 py-0"
                     >
                       {msg.contactType}
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
             </div>
           ))}
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Conversation View -- full width on mobile when selected */}
@@ -174,40 +203,48 @@ export default function MessagesClient({
         {selected ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gym-border flex items-center justify-between">
+            <div className="p-4 border-b border-border bg-card flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setSelectedMsg(null)}
-                  className="lg:hidden p-1 hover:bg-gym-bg rounded-lg"
+                  className="lg:hidden"
                 >
-                  <ArrowLeft className="w-5 h-5 text-gym-text-muted" />
-                </button>
-                <div className="w-10 h-10 bg-gym-primary/20 rounded-full flex items-center justify-center text-sm font-bold text-gym-primary">
-                  {selected.contactName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </div>
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <Avatar>
+                  <AvatarFallback className="bg-primary/20 text-primary text-sm font-bold">
+                    {selected.contactName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
-                  <h3 className="text-sm font-semibold text-gym-text">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {selected.contactName}
                   </h3>
-                  <span className="text-xs text-gym-text-muted capitalize">
+                  <span className="text-xs text-muted-foreground capitalize">
                     {selected.contactType} &middot;{" "}
                     {selected.channel ? selected.channel.toUpperCase() : ""}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gym-bg rounded-lg">
-                  <Phone className="w-4 h-4 text-gym-text-muted" />
-                </button>
-                <button className="p-2 hover:bg-gym-bg rounded-lg hidden sm:block">
-                  <User className="w-4 h-4 text-gym-text-muted" />
-                </button>
-                <button className="p-2 hover:bg-gym-bg rounded-lg">
-                  <MoreVertical className="w-4 h-4 text-gym-text-muted" />
-                </button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon">
+                  <Phone className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden sm:inline-flex"
+                >
+                  <User className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
               </div>
             </div>
 
@@ -219,47 +256,61 @@ export default function MessagesClient({
                   className={`flex ${msg.from === "us" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] sm:max-w-[70%] p-3 rounded-2xl ${msg.from === "us" ? "bg-gym-primary text-white rounded-br-md" : "bg-gym-card border border-gym-border text-gym-text rounded-bl-md"}`}
+                    className={cn(
+                      "max-w-[85%] sm:max-w-[70%] p-3 rounded-2xl",
+                      msg.from === "us"
+                        ? "bg-primary text-primary-foreground rounded-br-md"
+                        : "bg-secondary text-foreground rounded-bl-md",
+                    )}
                   >
                     <p className="text-sm">{msg.text}</p>
                     <p
-                      className={`text-[10px] mt-1 ${msg.from === "us" ? "text-white/60" : "text-gym-text-muted"}`}
+                      className={cn(
+                        "text-[10px] mt-1",
+                        msg.from === "us"
+                          ? "text-primary-foreground/60"
+                          : "text-muted-foreground",
+                      )}
                     >
                       {msg.time}
                     </p>
                   </div>
                 </div>
               ))}
-              <div className="rounded-xl border border-gym-border bg-gym-card/70 p-3 text-xs text-gym-text-muted">
+              <div className="rounded-xl border border-border bg-card/70 p-3 text-xs text-muted-foreground">
                 Showing the latest synced message for this conversation.
               </div>
             </div>
 
             {/* Input */}
-            <div className="p-3 lg:p-4 border-t border-gym-border">
-              <div className="flex items-center gap-2 bg-gym-card border border-gym-border rounded-xl p-2">
-                <button className="p-2 hover:bg-gym-bg rounded-lg">
-                  <Paperclip className="w-4 h-4 text-gym-text-muted" />
-                </button>
-                <input
+            <div className="p-3 lg:p-4 border-t border-border">
+              <div className="flex items-center gap-2 bg-card border border-border rounded-xl p-2">
+                <Button variant="ghost" size="icon">
+                  <Paperclip className="w-4 h-4" />
+                </Button>
+                <Input
                   type="text"
                   placeholder="Type a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-gym-text placeholder:text-gym-text-muted focus:outline-none"
+                  className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
                 />
-                <button className="p-2 hover:bg-gym-bg rounded-lg hidden sm:block">
-                  <Smile className="w-4 h-4 text-gym-text-muted" />
-                </button>
-                <button className="p-2 bg-gym-primary rounded-lg hover:bg-gym-primary/80">
-                  <Send className="w-4 h-4 text-white" />
-                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden sm:inline-flex"
+                >
+                  <Smile className="w-4 h-4" />
+                </Button>
+                <Button size="icon">
+                  <Send className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gym-text-muted">Select a conversation</p>
+            <p className="text-muted-foreground">Select a conversation</p>
           </div>
         )}
       </div>

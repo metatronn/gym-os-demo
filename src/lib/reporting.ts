@@ -1,83 +1,138 @@
-import type { Member, Lead, Payment, ClassSession } from "@/lib/data";
+type DateLike = Date | string | null | undefined;
 
-type PaymentLike =
-  | Payment
-  | {
-      amount: number;
-      status: string;
-      createdAt: Date | string;
-      date?: string;
-    };
-
-function paymentTimestamp(payment: PaymentLike): Date {
-  if ("createdAt" in payment) {
-    return new Date(payment.createdAt);
-  }
-
-  return new Date(payment.date);
-}
-
-function paymentAmountDollars(payment: PaymentLike): number {
-  if ("createdAt" in payment) {
-    return centsToDollars(payment.amount);
-  }
-
-  return payment.amount;
-}
-
-// --- Date range helpers ---
-
-export type RangeKey = "30d" | "90d" | "6m" | "12m" | "ytd";
+export type RangeKey = "30d" | "90d" | "6m" | "12m" | "custom";
 
 export const RANGE_OPTIONS: { label: string; value: RangeKey }[] = [
   { label: "Last 30 days", value: "30d" },
   { label: "Last 90 days", value: "90d" },
   { label: "Last 6 months", value: "6m" },
   { label: "Last 12 months", value: "12m" },
-  { label: "Year to date", value: "ytd" },
+  { label: "Custom range", value: "custom" },
 ];
 
-export function rangeToDateBounds(
-  key: RangeKey,
-  now: Date = new Date(),
-): { from: Date; to: Date } {
-  const to = new Date(now);
-  let from: Date;
+export type ReportDateRange = {
+  key: RangeKey;
+  from: Date;
+  to: Date;
+};
 
-  switch (key) {
-    case "30d":
-      from = new Date(now);
-      from.setDate(from.getDate() - 30);
-      break;
-    case "90d":
-      from = new Date(now);
-      from.setDate(from.getDate() - 90);
-      break;
-    case "6m":
-      from = new Date(now);
-      from.setMonth(from.getMonth() - 6);
-      break;
-    case "12m":
-      from = new Date(now);
-      from.setMonth(from.getMonth() - 12);
-      break;
-    case "ytd":
-      from = new Date(now.getFullYear(), 0, 1);
-      break;
-    default:
-      from = new Date(now);
-      from.setMonth(from.getMonth() - 6);
-  }
+export type PaymentLike = {
+  amount: number;
+  status: string;
+  createdAt?: Date | string;
+  date?: Date | string;
+};
 
-  return { from, to };
-}
+export type MemberLike = {
+  id: string;
+  name: string;
+  plan: string;
+  status: string;
+  riskScore: number;
+  riskLevel: string;
+  monthlyVisits: number;
+  billingStatus: string;
+  joinDate: Date | string;
+  lastCheckIn: DateLike;
+};
 
-// --- Revenue computation ---
+export type LeadLike = {
+  status: string;
+  source: string | null;
+  createdAt: Date | string;
+};
+
+export type ClassLike = {
+  name: string;
+  capacity: number | null;
+  enrolled: number;
+  time: string | null;
+};
 
 export interface MonthlyRevenue {
-  month: string; // "Jan 2026"
-  monthKey: string; // "2026-01"
+  month: string;
+  monthKey: string;
   revenue: number;
+}
+
+export interface MemberGrowthMonth {
+  month: string;
+  monthKey: string;
+  newMembers: number;
+  churned: number;
+}
+
+export interface FunnelStage {
+  stage: string;
+  count: number;
+  color: string;
+  conversionRate: number | null;
+}
+
+export interface ClassUtilization {
+  name: string;
+  utilization: number;
+  enrolled: number;
+  capacity: number;
+}
+
+export interface ReportKPIs {
+  revenue: number;
+  revenueChange: number;
+  activeMembers: number;
+  newLeads: number;
+  conversionRate: number;
+  churnRate: number;
+  avgRisk: number;
+}
+
+export interface RetentionCurve {
+  cohort: string;
+  points: Array<{
+    period: string;
+    retention: number;
+  }>;
+}
+
+export interface TopRiskMember {
+  id: string;
+  name: string;
+  plan: string;
+  riskScore: number;
+  riskLevel: string;
+  billingStatus: string;
+  monthlyVisits: number;
+  lastCheckIn: string | null;
+}
+
+export interface ReportData {
+  range: {
+    key: RangeKey;
+    from: string;
+    to: string;
+  };
+  kpis: ReportKPIs;
+  revenueSeries: MonthlyRevenue[];
+  memberGrowth: MemberGrowthMonth[];
+  leadFunnel: FunnelStage[];
+  classUtilization: ClassUtilization[];
+  retentionCurves: RetentionCurve[];
+  topRiskMembers: TopRiskMember[];
+}
+
+function toDate(value: DateLike): Date | null {
+  return value ? new Date(value) : null;
+}
+
+function toMonthKey(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toMonthLabel(value: Date, includeYear = false) {
+  return value.toLocaleDateString("en-US", {
+    month: "short",
+    ...(includeYear ? { year: "numeric" } : {}),
+  });
 }
 
 export function centsToDollars(value: number) {
@@ -92,6 +147,64 @@ export function calculatePercentChange(current: number, previous: number) {
   return ((current - previous) / previous) * 100;
 }
 
+export function resolveReportDateRange(input: {
+  key: RangeKey;
+  from?: string | null;
+  to?: string | null;
+  now?: Date;
+}): ReportDateRange {
+  const now = input.now ?? new Date();
+  const to = input.to ? new Date(input.to) : new Date(now);
+
+  if (input.key === "custom") {
+    const from = input.from ? new Date(input.from) : new Date(to);
+
+    if (
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime()) ||
+      from > to
+    ) {
+      const fallbackFrom = new Date(now);
+      fallbackFrom.setMonth(fallbackFrom.getMonth() - 6);
+      return {
+        key: "6m",
+        from: fallbackFrom,
+        to: now,
+      };
+    }
+
+    return {
+      key: "custom",
+      from,
+      to,
+    };
+  }
+
+  const from = new Date(to);
+
+  switch (input.key) {
+    case "30d":
+      from.setDate(from.getDate() - 30);
+      break;
+    case "90d":
+      from.setDate(from.getDate() - 90);
+      break;
+    case "12m":
+      from.setMonth(from.getMonth() - 12);
+      break;
+    case "6m":
+    default:
+      from.setMonth(from.getMonth() - 6);
+      break;
+  }
+
+  return {
+    key: input.key,
+    from,
+    to,
+  };
+}
+
 export function calculateMonthlyRevenue(
   payments: PaymentLike[],
   referenceDate: Date = new Date(),
@@ -101,46 +214,24 @@ export function calculateMonthlyRevenue(
       return total;
     }
 
-    const date = paymentTimestamp(payment);
+    const date = toDate(payment.createdAt ?? payment.date);
 
     if (
+      !date ||
       date.getFullYear() !== referenceDate.getFullYear() ||
       date.getMonth() !== referenceDate.getMonth()
     ) {
       return total;
     }
 
-    return total + paymentAmountDollars(payment);
+    return total + centsToDollars(payment.amount);
   }, 0);
-}
-
-export function sortClassesByTime<T extends { time: string | null }>(
-  classes: T[],
-): T[] {
-  function parseTime(value: string | null) {
-    if (!value) {
-      return Number.MAX_SAFE_INTEGER;
-    }
-
-    const [rawTime, meridiem] = value.trim().split(/\s+/);
-    const [hoursText, minutesText = "0"] = rawTime.split(":");
-    let hours = Number(hoursText) % 12;
-
-    if (meridiem?.toUpperCase() === "PM") {
-      hours += 12;
-    }
-
-    return hours * 60 + Number(minutesText);
-  }
-
-  return [...classes].sort(
-    (left, right) => parseTime(left.time) - parseTime(right.time),
-  );
 }
 
 export function buildMonthlyRevenueSeries(
   payments: PaymentLike[],
   monthsBack: number,
+  referenceDate?: Date,
 ): MonthlyRevenue[];
 export function buildMonthlyRevenueSeries(
   payments: PaymentLike[],
@@ -149,59 +240,77 @@ export function buildMonthlyRevenueSeries(
 ): MonthlyRevenue[];
 export function buildMonthlyRevenueSeries(
   payments: PaymentLike[],
-  fromOrMonths: Date | number,
-  to?: Date,
+  fromOrMonthsBack: Date | number,
+  toOrReferenceDate?: Date,
 ): MonthlyRevenue[] {
-  const toDate =
-    typeof fromOrMonths === "number" ? new Date() : new Date(to ?? new Date());
-  const fromDate =
-    typeof fromOrMonths === "number"
-      ? new Date(
-          toDate.getFullYear(),
-          toDate.getMonth() - Math.max(fromOrMonths - 1, 0),
-          1,
-        )
-      : new Date(fromOrMonths);
+  let from: Date;
+  let to: Date;
 
-  // Generate all months in range
+  if (typeof fromOrMonthsBack === "number") {
+    const monthsBack = Math.max(fromOrMonthsBack, 1);
+    const referenceDate = toOrReferenceDate ?? new Date();
+    to = new Date(referenceDate);
+    from = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+    from.setMonth(from.getMonth() - (monthsBack - 1));
+  } else {
+    from = fromOrMonthsBack;
+    to = toOrReferenceDate ?? new Date();
+  }
+
   const months: MonthlyRevenue[] = [];
-  const cursor = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-  const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+  const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+  const end = new Date(to.getFullYear(), to.getMonth(), 1);
 
   while (cursor <= end) {
-    const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-    const label = cursor.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
+    const monthKey = toMonthKey(cursor);
+    months.push({
+      month: toMonthLabel(cursor, true),
+      monthKey,
+      revenue: 0,
     });
-    months.push({ month: label, monthKey, revenue: 0 });
     cursor.setMonth(cursor.getMonth() + 1);
   }
 
-  // Sum succeeded payments into months
-  for (const p of payments) {
-    if (p.status !== "succeeded") continue;
-    const d = paymentTimestamp(p);
-    if (d < fromDate || d > toDate) continue;
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const bucket = months.find((m) => m.monthKey === key);
-    if (bucket) bucket.revenue += paymentAmountDollars(p);
+  for (const payment of payments) {
+    if (payment.status !== "succeeded") {
+      continue;
+    }
+
+    const date = toDate(payment.createdAt ?? payment.date);
+
+    if (!date || date < from || date > to) {
+      continue;
+    }
+
+    const bucket = months.find((month) => month.monthKey === toMonthKey(date));
+
+    if (bucket) {
+      bucket.revenue += centsToDollars(payment.amount);
+    }
   }
 
   return months;
 }
 
-// --- Member growth ---
+function parseClassTime(value: string | null) {
+  if (!value) {
+    return Number.POSITIVE_INFINITY;
+  }
 
-export interface MemberGrowthMonth {
-  month: string;
-  monthKey: string;
-  newMembers: number;
-  churned: number;
+  const parsed = Date.parse(`1970-01-01 ${value}`);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
+export function sortClassesByTime<T extends { time: string | null }>(
+  rows: T[],
+) {
+  return [...rows].sort(
+    (left, right) => parseClassTime(left.time) - parseClassTime(right.time),
+  );
 }
 
 export function buildMemberGrowthSeries(
-  members: Member[],
+  members: MemberLike[],
   from: Date,
   to: Date,
 ): MemberGrowthMonth[] {
@@ -210,27 +319,37 @@ export function buildMemberGrowthSeries(
   const end = new Date(to.getFullYear(), to.getMonth(), 1);
 
   while (cursor <= end) {
-    const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-    const label = cursor.toLocaleDateString("en-US", { month: "short" });
-    months.push({ month: label, monthKey, newMembers: 0, churned: 0 });
+    const monthKey = toMonthKey(cursor);
+    months.push({
+      month: toMonthLabel(cursor),
+      monthKey,
+      newMembers: 0,
+      churned: 0,
+    });
     cursor.setMonth(cursor.getMonth() + 1);
   }
 
-  for (const m of members) {
-    const joinDate = new Date(m.joinDate);
-    if (joinDate >= from && joinDate <= to) {
-      const key = `${joinDate.getFullYear()}-${String(joinDate.getMonth() + 1).padStart(2, "0")}`;
-      const bucket = months.find((mo) => mo.monthKey === key);
-      if (bucket) bucket.newMembers++;
+  for (const member of members) {
+    const joinDate = toDate(member.joinDate);
+
+    if (joinDate && joinDate >= from && joinDate <= to) {
+      const bucket = months.find(
+        (month) => month.monthKey === toMonthKey(joinDate),
+      );
+      if (bucket) {
+        bucket.newMembers += 1;
+      }
     }
 
-    // Count cancelled members as churned in the month they were last seen
-    if (m.status === "cancelled") {
-      const churnDate = new Date(m.lastCheckIn);
-      if (churnDate >= from && churnDate <= to) {
-        const key = `${churnDate.getFullYear()}-${String(churnDate.getMonth() + 1).padStart(2, "0")}`;
-        const bucket = months.find((mo) => mo.monthKey === key);
-        if (bucket) bucket.churned++;
+    if (member.status === "cancelled") {
+      const churnDate = toDate(member.lastCheckIn);
+      if (churnDate && churnDate >= from && churnDate <= to) {
+        const bucket = months.find(
+          (month) => month.monthKey === toMonthKey(churnDate),
+        );
+        if (bucket) {
+          bucket.churned += 1;
+        }
       }
     }
   }
@@ -238,228 +357,159 @@ export function buildMemberGrowthSeries(
   return months;
 }
 
-// --- Lead funnel ---
-
-export interface FunnelStage {
-  stage: string;
-  count: number;
-  color: string;
-  conversionRate: number | null; // null for first stage
-}
-
-const FUNNEL_STAGE_ORDER = ["new", "contacted", "booked", "converted"] as const;
-const FUNNEL_STAGE_LABELS: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  booked: "Tour / Trial Booked",
-  converted: "Converted",
-};
-const FUNNEL_STAGE_COLORS: Record<string, string> = {
-  new: "#3B82F6",
-  contacted: "#8B5CF6",
-  booked: "#F59E0B",
-  converted: "#10B981",
-};
+const FUNNEL_STAGES = [
+  { key: "new", label: "New", color: "#3B82F6" },
+  { key: "contacted", label: "Contacted", color: "#8B5CF6" },
+  { key: "booked", label: "Tour / Trial Booked", color: "#F59E0B" },
+  { key: "converted", label: "Converted", color: "#10B981" },
+] as const;
 
 export function buildLeadFunnel(
-  leads: Lead[],
+  leads: LeadLike[],
   from: Date,
   to: Date,
 ): FunnelStage[] {
-  // Count leads that reached each stage (cumulative: converted also counts as new, contacted, booked)
-  const stageIndex: Record<string, number> = {
+  const filtered = leads.filter((lead) => {
+    const createdAt = toDate(lead.createdAt);
+    return Boolean(createdAt && createdAt >= from && createdAt <= to);
+  });
+
+  const stageDepth: Record<string, number> = {
     new: 0,
     contacted: 1,
     booked: 2,
     converted: 3,
-    lost: -1, // lost leads count at whichever stage they were lost from — we include them in the total
+    lost: 1,
   };
 
-  // Filter leads within date range
-  const filtered = leads.filter((l) => {
-    const d = new Date(l.createdAt);
-    return d >= from && d <= to;
-  });
-
-  // Cumulative counts: a lead at stage N has passed through all stages 0..N
-  const counts: Record<string, number> = {};
-  for (const stage of FUNNEL_STAGE_ORDER) {
-    counts[stage] = 0;
-  }
+  const counts = Object.fromEntries(
+    FUNNEL_STAGES.map((stage) => [stage.key, 0]),
+  ) as Record<(typeof FUNNEL_STAGES)[number]["key"], number>;
 
   for (const lead of filtered) {
-    const idx = stageIndex[lead.status] ?? 0;
-    // Count this lead in every stage it has passed through
-    for (let i = 0; i < FUNNEL_STAGE_ORDER.length; i++) {
-      if (i <= idx || (lead.status === "lost" && i === 0)) {
-        // lost leads at minimum reached "new"
-        counts[FUNNEL_STAGE_ORDER[i]]++;
+    const depth = stageDepth[lead.status] ?? 0;
+
+    FUNNEL_STAGES.forEach((stage, index) => {
+      if (index <= depth) {
+        counts[stage.key] += 1;
       }
-    }
-  }
-
-  // If there are lost leads, also count them at their estimated stage (for now, assume they reached "contacted")
-  for (const lead of filtered) {
-    if (lead.status === "lost") {
-      // Count lost leads up to "contacted" stage
-      if (counts["contacted"] !== undefined) counts["contacted"]++;
-    }
-  }
-
-  const stages: FunnelStage[] = [];
-  let prev: number | null = null;
-
-  for (const stage of FUNNEL_STAGE_ORDER) {
-    const count = counts[stage];
-    stages.push({
-      stage: FUNNEL_STAGE_LABELS[stage],
-      count,
-      color: FUNNEL_STAGE_COLORS[stage],
-      conversionRate:
-        prev !== null && prev > 0 ? Math.round((count / prev) * 100) : null,
     });
-    prev = count;
   }
 
-  return stages;
-}
+  let previous: number | null = null;
 
-// --- Lead sources ---
+  return FUNNEL_STAGES.map((stage) => {
+    const count = counts[stage.key];
+    const conversionRate =
+      previous !== null && previous > 0
+        ? Math.round((count / previous) * 100)
+        : null;
+    previous = count;
 
-export interface LeadSourceCount {
-  source: string;
-  count: number;
-  color: string;
-}
-
-const SOURCE_COLORS: Record<string, string> = {
-  Instagram: "#E1306C",
-  Google: "#4285F4",
-  Referral: "#10B981",
-  Facebook: "#1877F2",
-  "Walk-in": "#F59E0B",
-  Website: "#06B6D4",
-};
-
-export function buildLeadSourceCounts(
-  leads: Lead[],
-  from: Date,
-  to: Date,
-): LeadSourceCount[] {
-  const filtered = leads.filter((l) => {
-    const d = new Date(l.createdAt);
-    return d >= from && d <= to;
-  });
-
-  const counts: Record<string, number> = {};
-  for (const l of filtered) {
-    counts[l.source] = (counts[l.source] || 0) + 1;
-  }
-
-  return Object.entries(counts)
-    .map(([source, count]) => ({
-      source,
+    return {
+      stage: stage.label,
       count,
-      color: SOURCE_COLORS[source] || "#94A3B8",
-    }))
-    .sort((a, b) => b.count - a.count);
-}
-
-// --- Class utilization ---
-
-export interface ClassUtilization {
-  name: string;
-  utilization: number;
-  enrolled: number;
-  capacity: number;
+      color: stage.color,
+      conversionRate,
+    };
+  });
 }
 
 export function buildClassUtilization(
-  classes: ClassSession[],
+  classes: ClassLike[],
 ): ClassUtilization[] {
-  return classes.map((c) => ({
-    name: c.name.length > 15 ? c.name.slice(0, 15) + "..." : c.name,
-    utilization:
-      c.capacity > 0 ? Math.round((c.enrolled / c.capacity) * 100) : 0,
-    enrolled: c.enrolled,
-    capacity: c.capacity,
-  }));
-}
-
-// --- KPI summary ---
-
-export interface ReportKPIs {
-  revenue: number;
-  revenueChange: number;
-  activeMembers: number;
-  newLeads: number;
-  conversionRate: number;
-  churnRate: number;
-  avgRisk: number;
+  return classes
+    .map((classSession) => ({
+      name:
+        classSession.name.length > 18
+          ? `${classSession.name.slice(0, 18)}...`
+          : classSession.name,
+      utilization:
+        classSession.capacity && classSession.capacity > 0
+          ? Math.round((classSession.enrolled / classSession.capacity) * 100)
+          : 0,
+      enrolled: classSession.enrolled,
+      capacity: classSession.capacity ?? 0,
+    }))
+    .sort((left, right) => right.utilization - left.utilization);
 }
 
 export function computeKPIs(
-  members: Member[],
-  leads: Lead[],
-  payments: Payment[],
-  from: Date,
-  to: Date,
+  members: MemberLike[],
+  leads: LeadLike[],
+  payments: PaymentLike[],
+  range: ReportDateRange,
 ): ReportKPIs {
-  const succeededPayments = payments.filter((p) => {
-    if (p.status !== "succeeded") return false;
-    const d = new Date(p.date);
-    return d >= from && d <= to;
+  const succeededInRange = payments.filter((payment) => {
+    const createdAt = toDate(payment.createdAt ?? payment.date);
+    return Boolean(
+      payment.status === "succeeded" &&
+      createdAt &&
+      createdAt >= range.from &&
+      createdAt <= range.to,
+    );
   });
-  const revenue = succeededPayments.reduce((a, p) => a + p.amount, 0);
 
-  // Rough previous-period revenue for comparison
-  const periodMs = to.getTime() - from.getTime();
-  const prevFrom = new Date(from.getTime() - periodMs);
-  const prevTo = new Date(from);
-  const prevRevenue = payments
-    .filter((p) => {
-      if (p.status !== "succeeded") return false;
-      const d = new Date(p.date);
-      return d >= prevFrom && d < prevTo;
+  const revenue = succeededInRange.reduce(
+    (total, payment) => total + centsToDollars(payment.amount),
+    0,
+  );
+
+  const periodMs = range.to.getTime() - range.from.getTime();
+  const previousRange = {
+    from: new Date(range.from.getTime() - periodMs),
+    to: new Date(range.to.getTime() - periodMs),
+  };
+
+  const previousRevenue = payments
+    .filter((payment) => {
+      const createdAt = toDate(payment.createdAt ?? payment.date);
+      return Boolean(
+        payment.status === "succeeded" &&
+        createdAt &&
+        createdAt >= previousRange.from &&
+        createdAt <= previousRange.to,
+      );
     })
-    .reduce((a, p) => a + p.amount, 0);
+    .reduce((total, payment) => total + centsToDollars(payment.amount), 0);
 
-  const revenueChange =
-    prevRevenue > 0
-      ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100)
-      : 0;
-
-  const activeMembers = members.filter((m) => m.status === "active").length;
+  const revenueChange = Math.round(
+    calculatePercentChange(revenue, previousRevenue),
+  );
+  const activeMembers = members.filter(
+    (member) => member.status === "active",
+  ).length;
   const cancelledMembers = members.filter(
-    (m) => m.status === "cancelled",
+    (member) => member.status === "cancelled",
   ).length;
   const churnRate =
     members.length > 0
-      ? Math.round((cancelledMembers / members.length) * 100 * 10) / 10
+      ? Math.round((cancelledMembers / members.length) * 1000) / 10
       : 0;
 
-  const filteredLeads = leads.filter((l) => {
-    const d = new Date(l.createdAt);
-    return d >= from && d <= to;
+  const leadsInRange = leads.filter((lead) => {
+    const createdAt = toDate(lead.createdAt);
+    return Boolean(
+      createdAt && createdAt >= range.from && createdAt <= range.to,
+    );
   });
-  const newLeads = filteredLeads.length;
-  const converted = filteredLeads.filter(
-    (l) => l.status === "converted",
+
+  const newLeads = leadsInRange.length;
+  const convertedLeads = leadsInRange.filter(
+    (lead) => lead.status === "converted",
   ).length;
   const conversionRate =
-    filteredLeads.length > 0
-      ? Math.round((converted / filteredLeads.length) * 100)
-      : 0;
-
+    newLeads > 0 ? Math.round((convertedLeads / newLeads) * 100) : 0;
   const avgRisk =
     members.length > 0
       ? Math.round(
-          members.reduce((a, m) => a + m.riskScore, 0) / members.length,
+          members.reduce((total, member) => total + member.riskScore, 0) /
+            members.length,
         )
       : 0;
 
   return {
-    revenue,
+    revenue: Number(revenue.toFixed(2)),
     revenueChange,
     activeMembers,
     newLeads,
@@ -469,95 +519,74 @@ export function computeKPIs(
   };
 }
 
-// --- Aggregated report data (ready for DB swap) ---
-
-export interface ReportData {
-  kpis: ReportKPIs;
-  revenueSeries: MonthlyRevenue[];
-  memberGrowth: MemberGrowthMonth[];
-  leadFunnel: FunnelStage[];
-  leadSources: LeadSourceCount[];
-  classUtilization: ClassUtilization[];
-  memberPlans: { plan: string; count: number; color: string }[];
-  riskDistribution: { level: string; count: number; color: string }[];
-  totalMembers: number;
-  range: RangeKey;
+function addMonths(value: Date, months: number) {
+  const next = new Date(value);
+  next.setMonth(next.getMonth() + months);
+  return next;
 }
 
-export function buildReportData(
-  allMembers: Member[],
-  allLeads: Lead[],
-  allPayments: Payment[],
-  allClasses: ClassSession[],
-  range: RangeKey,
-): ReportData {
-  const { from, to } = rangeToDateBounds(range);
+export function buildRetentionCurves(
+  members: MemberLike[],
+  now: Date,
+): RetentionCurve[] {
+  const periods = [
+    { months: 1, label: "1M" },
+    { months: 3, label: "3M" },
+    { months: 6, label: "6M" },
+    { months: 12, label: "12M" },
+  ] as const;
 
-  const kpis = computeKPIs(allMembers, allLeads, allPayments, from, to);
-  const revenueSeries = buildMonthlyRevenueSeries(allPayments, from, to);
-  const memberGrowth = buildMemberGrowthSeries(allMembers, from, to);
-  const leadFunnel = buildLeadFunnel(allLeads, from, to);
-  const leadSources = buildLeadSourceCounts(allLeads, from, to);
-  const classUtilization = buildClassUtilization(allClasses);
+  const cohorts = new Map<string, MemberLike[]>();
 
-  const memberPlans = [
-    {
-      plan: "Premium",
-      count: allMembers.filter((m) => m.plan === "Premium").length,
-      color: "#0350FF",
-    },
-    {
-      plan: "Unlimited",
-      count: allMembers.filter((m) => m.plan === "Unlimited").length,
-      color: "#06B6D4",
-    },
-    {
-      plan: "Basic",
-      count: allMembers.filter((m) => m.plan === "Basic").length,
-      color: "#F59E0B",
-    },
-    {
-      plan: "Trial",
-      count: allMembers.filter((m) => m.plan === "Trial").length,
-      color: "#10B981",
-    },
-  ];
+  for (const member of members) {
+    const joinDate = toDate(member.joinDate);
+    if (!joinDate) {
+      continue;
+    }
 
-  const riskDistribution = [
-    {
-      level: "Low (0-30%)",
-      count: allMembers.filter((m) => m.riskScore <= 30).length,
-      color: "#10B981",
-    },
-    {
-      level: "Medium (31-50%)",
-      count: allMembers.filter((m) => m.riskScore > 30 && m.riskScore <= 50)
-        .length,
-      color: "#F59E0B",
-    },
-    {
-      level: "High (51-75%)",
-      count: allMembers.filter((m) => m.riskScore > 50 && m.riskScore <= 75)
-        .length,
-      color: "#F97316",
-    },
-    {
-      level: "Critical (76-100%)",
-      count: allMembers.filter((m) => m.riskScore > 75).length,
-      color: "#EF4444",
-    },
-  ];
+    const cohortKey = `${joinDate.getFullYear()} Q${Math.floor(joinDate.getMonth() / 3) + 1}`;
+    const existing = cohorts.get(cohortKey) ?? [];
+    existing.push(member);
+    cohorts.set(cohortKey, existing);
+  }
 
-  return {
-    kpis,
-    revenueSeries,
-    memberGrowth,
-    leadFunnel,
-    leadSources,
-    classUtilization,
-    memberPlans,
-    riskDistribution,
-    totalMembers: allMembers.length,
-    range,
-  };
+  return Array.from(cohorts.entries())
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .slice(-4)
+    .map(([cohort, cohortMembers]) => ({
+      cohort,
+      points: periods.map((period) => {
+        const eligible = cohortMembers.filter((member: MemberLike) => {
+          const joinDate = toDate(member.joinDate);
+          return Boolean(joinDate && addMonths(joinDate, period.months) <= now);
+        });
+
+        if (eligible.length === 0) {
+          return {
+            period: period.label,
+            retention: 0,
+          };
+        }
+
+        const retained = eligible.filter((member: MemberLike) => {
+          if (member.status !== "cancelled") {
+            return true;
+          }
+
+          const joinDate = toDate(member.joinDate);
+          const lastSeen = toDate(member.lastCheckIn);
+
+          return Boolean(
+            joinDate &&
+            lastSeen &&
+            lastSeen >= addMonths(joinDate, period.months),
+          );
+        });
+
+        return {
+          period: period.label,
+          retention: Math.round((retained.length / eligible.length) * 100),
+        };
+      }),
+    }));
 }

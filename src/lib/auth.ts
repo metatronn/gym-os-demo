@@ -5,12 +5,14 @@ import { db } from "@/db";
 import { staffMemberships, users } from "@/db/schema";
 import {
   AUTH_ROLE_HEADER,
+  AUTH_SESSION_ID_HEADER,
   AUTH_TENANT_ID_HEADER,
   AUTH_TOKEN_VERSION_HEADER,
   AUTH_USER_ID_HEADER,
   SESSION_COOKIE_NAME,
   verifySessionToken,
 } from "@/lib/auth-session";
+import { touchAuthSession, validateAuthSession } from "@/lib/auth-store";
 import { setSentryContext } from "@/lib/sentry";
 
 type AuthContext = {
@@ -18,22 +20,62 @@ type AuthContext = {
   orgId: string | null;
   orgRole: string | null;
   tokenVersion: number | null;
+  sessionId: string | null;
 };
 
 export async function getAuthContext(): Promise<AuthContext> {
   const requestHeaders = headers();
   const headerUserId = requestHeaders.get(AUTH_USER_ID_HEADER);
   const headerTokenVersion = requestHeaders.get(AUTH_TOKEN_VERSION_HEADER);
+  const headerSessionId = requestHeaders.get(AUTH_SESSION_ID_HEADER);
 
   if (headerUserId && headerTokenVersion) {
     const tokenVersion = Number(headerTokenVersion);
 
     if (!Number.isNaN(tokenVersion)) {
+      const [user] = await db
+        .select({
+          id: users.id,
+          tokenVersion: users.tokenVersion,
+        })
+        .from(users)
+        .where(eq(users.id, headerUserId))
+        .limit(1);
+
+      if (!user || user.tokenVersion !== tokenVersion) {
+        return {
+          userId: null,
+          orgId: null,
+          orgRole: null,
+          tokenVersion: null,
+          sessionId: null,
+        };
+      }
+
+      if (headerSessionId) {
+        const sessionValid = await validateAuthSession(
+          headerSessionId,
+          headerUserId,
+          tokenVersion,
+        );
+
+        if (!sessionValid) {
+          return {
+            userId: null,
+            orgId: null,
+            orgRole: null,
+            tokenVersion: null,
+            sessionId: null,
+          };
+        }
+      }
+
       return {
         userId: headerUserId,
         orgId: requestHeaders.get(AUTH_TENANT_ID_HEADER),
         orgRole: requestHeaders.get(AUTH_ROLE_HEADER),
         tokenVersion,
+        sessionId: headerSessionId,
       };
     }
   }
@@ -46,6 +88,7 @@ export async function getAuthContext(): Promise<AuthContext> {
       orgId: null,
       orgRole: null,
       tokenVersion: null,
+      sessionId: null,
     };
   }
 
@@ -57,34 +100,8 @@ export async function getAuthContext(): Promise<AuthContext> {
       orgId: null,
       orgRole: null,
       tokenVersion: null,
+      sessionId: null,
     };
-  }
-
-  return {
-    userId: payload.sub,
-    orgId: payload.tid ?? null,
-    orgRole: payload.role ?? null,
-    tokenVersion: payload.ver,
-  };
-}
-
-export async function requireAuth(options: { requireOrg: false }): Promise<{
-  userId: string;
-  orgId: string | null;
-  orgRole: string | null;
-  tokenVersion: number;
-}>;
-export async function requireAuth(options?: { requireOrg?: true }): Promise<{
-  userId: string;
-  orgId: string;
-  orgRole: string | null;
-  tokenVersion: number;
-}>;
-export async function requireAuth(options?: { requireOrg?: boolean }) {
-  const { userId, orgId, tokenVersion } = await getAuthContext();
-
-  if (!userId || tokenVersion === null) {
-    redirect("/sign-in");
   }
 
   const [user] = await db
@@ -93,10 +110,64 @@ export async function requireAuth(options?: { requireOrg?: boolean }) {
       tokenVersion: users.tokenVersion,
     })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, payload.sub))
     .limit(1);
 
-  if (!user || user.tokenVersion !== tokenVersion) {
+  if (!user || user.tokenVersion !== payload.ver) {
+    return {
+      userId: null,
+      orgId: null,
+      orgRole: null,
+      tokenVersion: null,
+      sessionId: null,
+    };
+  }
+
+  if (payload.sid) {
+    const sessionValid = await validateAuthSession(
+      payload.sid,
+      payload.sub,
+      payload.ver,
+    );
+
+    if (!sessionValid) {
+      return {
+        userId: null,
+        orgId: null,
+        orgRole: null,
+        tokenVersion: null,
+        sessionId: null,
+      };
+    }
+  }
+
+  return {
+    userId: payload.sub,
+    orgId: payload.tid ?? null,
+    orgRole: payload.role ?? null,
+    tokenVersion: payload.ver,
+    sessionId: payload.sid ?? null,
+  };
+}
+
+export async function requireAuth(options: { requireOrg: false }): Promise<{
+  userId: string;
+  orgId: string | null;
+  orgRole: string | null;
+  tokenVersion: number;
+  sessionId: string | null;
+}>;
+export async function requireAuth(options?: { requireOrg?: true }): Promise<{
+  userId: string;
+  orgId: string;
+  orgRole: string | null;
+  tokenVersion: number;
+  sessionId: string | null;
+}>;
+export async function requireAuth(options?: { requireOrg?: boolean }) {
+  const { userId, orgId, tokenVersion, sessionId } = await getAuthContext();
+
+  if (!userId || tokenVersion === null) {
     redirect("/sign-in");
   }
 
@@ -106,7 +177,8 @@ export async function requireAuth(options?: { requireOrg?: boolean }) {
         userId,
         orgId: null,
         orgRole: null,
-        tokenVersion: user.tokenVersion,
+        tokenVersion,
+        sessionId,
       };
     }
 
@@ -133,7 +205,8 @@ export async function requireAuth(options?: { requireOrg?: boolean }) {
         userId,
         orgId: null,
         orgRole: null,
-        tokenVersion: user.tokenVersion,
+        tokenVersion,
+        sessionId,
       };
     }
 
@@ -142,16 +215,26 @@ export async function requireAuth(options?: { requireOrg?: boolean }) {
 
   setSentryContext(userId, orgId);
 
+  if (sessionId) {
+    await touchAuthSession(sessionId, {
+      tenantId: orgId,
+      role: membership.role,
+      tokenVersion,
+    });
+  }
+
   return {
     userId,
     orgId,
     orgRole: membership.role,
-    tokenVersion: user.tokenVersion,
+    tokenVersion,
+    sessionId,
   } as {
     userId: string;
     orgId: string;
     orgRole: string | null;
     tokenVersion: number;
+    sessionId: string | null;
   };
 }
 

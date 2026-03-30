@@ -24,6 +24,7 @@ export const tenants = pgTable(
 
     name: text("name").notNull(),
     slug: text("slug").unique(),
+    logoUrl: text("logo_url"),
 
     // Subscription
     subscriptionStatus: subscriptionStatusEnum("subscription_status")

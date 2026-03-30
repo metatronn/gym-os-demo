@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const { orgId, userId } = await requireAuth({ requireOrg: false });
 
-  const rl = consumeRateLimit(`subscription:${userId}`, {
+  const rl = await consumeRateLimit(`subscription:${userId}`, {
     limit: 30,
     windowMs: 60_000,
   });

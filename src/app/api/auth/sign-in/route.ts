@@ -7,6 +7,7 @@ import {
   jsonWithSession,
   validateJsonMutation,
 } from "@/lib/auth-api";
+import { recordAuthActivity } from "@/lib/auth-store";
 import { isValidEmail, normalizeEmail } from "@/lib/auth-utils";
 import { consumeRateLimit } from "@/lib/rate-limit";
 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     return jsonError(400, "Enter your email and password");
   }
 
-  const rateLimit = consumeRateLimit(`sign-in:${email}`, {
+  const rateLimit = await consumeRateLimit(`sign-in:${email}`, {
     limit: 5,
     windowMs: 15 * 60 * 1000,
   });
@@ -74,7 +75,16 @@ export async function POST(request: Request) {
     .orderBy(asc(staffMemberships.createdAt))
     .limit(1);
 
+  await recordAuthActivity({
+    userId: user.id,
+    tenantId: membership?.tenantId ?? null,
+    type: "sign-in",
+    description: "Signed in to GYM OS",
+    request,
+  });
+
   return jsonWithSession(
+    request,
     {
       ok: true,
       redirectTo: membership ? "/dashboard" : "/onboarding",

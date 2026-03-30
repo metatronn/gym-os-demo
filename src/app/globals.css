@@ -2,10 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Clean dark modern — neutral zinc base, no navy tint */
+    --background: 240 6% 6%; /* #0e0e11 — near-black, barely cool */
+    --foreground: 0 0% 95%; /* #f2f2f2 — crisp white text */
+
+    --card: 240 5% 9%; /* #141417 — subtle lift off background */
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 5% 9%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 250 85% 63%; /* #7c5cfc — modern violet */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 14%; /* #222226 — raised surface */
+    --secondary-foreground: 0 0% 85%;
+
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 3% 48%; /* #767680 — readable mid-gray */
+
+    --accent: 187 65% 48%; /* #2bbad4 — teal accent */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 58%; /* #e04848 — softer red */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 4% 16%; /* #262629 — low-contrast edge */
+    --input: 240 4% 16%;
+    --ring: 250 85% 63%; /* primary for focus rings */
+
+    /* Sidebar — darkest tier */
+    --sidebar: 240 6% 5%; /* #0b0b0e — near-black */
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-border: 240 4% 14%;
+    --sidebar-ring: 250 85% 63%;
+    --sidebar-accent: 250 85% 63%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-primary: 250 85% 63%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-muted: 240 3% 48%;
+
+    /* Chart palette — vibrant against dark */
+    --chart-1: 250 85% 63%; /* violet */
+    --chart-2: 187 65% 48%; /* teal */
+    --chart-3: 160 60% 45%; /* emerald */
+    --chart-4: 38 92% 55%; /* amber */
+    --chart-5: 0 72% 58%; /* coral red */
+
+    /* Semantic status tokens */
+    --success: 160 60% 45%; /* #10B981 — emerald */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%; /* #e8a230 — warm amber */
+    --warning-foreground: 0 0% 0%;
+  }
+
+  * {
+    @apply border-border;
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
 body {
-  background-color: #0A0F1C;
-  color: #F1F5F9;
-  font-family: 'Inter', system-ui, sans-serif;
+  @apply bg-background text-foreground;
+  font-family: "Inter", system-ui, sans-serif;
 }
 
 /* Scrollbar styling */
@@ -14,22 +82,22 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A0F1C;
+  background: hsl(var(--background));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: hsl(var(--border));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: hsl(var(--muted-foreground) / 0.3);
 }
 
 /* Glass card effect */
 .glass-card {
-  background: rgba(17, 24, 39, 0.7);
+  background: hsl(var(--card) / 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(30, 41, 59, 0.5);
-  border-radius: 12px;
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
 }

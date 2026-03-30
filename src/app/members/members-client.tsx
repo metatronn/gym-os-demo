@@ -17,6 +17,36 @@ import {
 } from "lucide-react";
 import type { Member } from "@/db/schema/members";
 import { createMember, updateMember, deleteMember } from "./actions";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 
 type MemberCounts = {
   total: number;
@@ -32,25 +62,28 @@ type Props = {
   counts: MemberCounts;
 };
 
-const statusColors: Record<string, string> = {
-  active: "bg-green-500/20 text-green-400",
-  frozen: "bg-blue-500/20 text-blue-400",
-  cancelled: "bg-red-500/20 text-red-400",
-  trial: "bg-yellow-500/20 text-yellow-400",
+const statusVariant: Record<
+  string,
+  "success" | "warning" | "destructive" | "default"
+> = {
+  active: "success",
+  frozen: "default",
+  cancelled: "destructive",
+  trial: "warning",
 };
 
 const riskColors: Record<string, string> = {
-  low: "text-green-400",
-  medium: "text-yellow-400",
+  low: "text-success",
+  medium: "text-warning",
   high: "text-orange-400",
-  critical: "text-red-400",
+  critical: "text-destructive",
 };
 
 const billingColors: Record<string, string> = {
-  current: "text-green-400",
-  failed: "text-red-400",
+  current: "text-success",
+  failed: "text-destructive",
   "past-due": "text-orange-400",
-  pending: "text-yellow-400",
+  pending: "text-warning",
 };
 
 function getInitials(name: string): string {
@@ -66,6 +99,66 @@ function formatDate(date: Date | string | null): string {
   if (!date) return "Never";
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toISOString().split("T")[0];
+}
+
+function AddPlanSelect() {
+  const [value, setValue] = useState("Trial");
+  return (
+    <>
+      <input type="hidden" name="plan" value={value} />
+      <Select value={value} onValueChange={setValue}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select plan" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Trial">Trial</SelectItem>
+          <SelectItem value="Basic">Basic</SelectItem>
+          <SelectItem value="Unlimited">Unlimited</SelectItem>
+          <SelectItem value="Premium">Premium</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+}
+
+function EditPlanSelect({ defaultValue }: { defaultValue: string }) {
+  const [value, setValue] = useState(defaultValue);
+  return (
+    <>
+      <input type="hidden" name="plan" value={value} />
+      <Select value={value} onValueChange={setValue}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select plan" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Trial">Trial</SelectItem>
+          <SelectItem value="Basic">Basic</SelectItem>
+          <SelectItem value="Unlimited">Unlimited</SelectItem>
+          <SelectItem value="Premium">Premium</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+}
+
+function EditStatusSelect({ defaultValue }: { defaultValue: string }) {
+  const [value, setValue] = useState(defaultValue);
+  return (
+    <>
+      <input type="hidden" name="status" value={value} />
+      <Select value={value} onValueChange={setValue}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="trial">Trial</SelectItem>
+          <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="frozen">Frozen</SelectItem>
+          <SelectItem value="cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
 }
 
 export default function MembersClient({ initialMembers, counts }: Props) {
@@ -160,29 +253,26 @@ export default function MembersClient({ initialMembers, counts }: Props) {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gym-text">Members</h1>
-            <p className="text-gym-text-muted text-sm mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Members</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               {counts.total} total members
             </p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Add Member
-          </button>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Add Member
+          </Button>
         </div>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           {[
-            { label: "Active", value: counts.active, color: "text-green-400" },
-            { label: "Trial", value: counts.trial, color: "text-yellow-400" },
+            { label: "Active", value: counts.active, color: "text-success" },
+            { label: "Trial", value: counts.trial, color: "text-warning" },
             { label: "Frozen", value: counts.frozen, color: "text-blue-400" },
             {
               label: "Cancelled",
               value: counts.cancelled,
-              color: "text-red-400",
+              color: "text-destructive",
             },
             {
               label: "At Risk",
@@ -190,103 +280,105 @@ export default function MembersClient({ initialMembers, counts }: Props) {
               color: "text-orange-400",
             },
           ].map((stat) => (
-            <div
-              key={stat.label}
-              className="p-3 bg-gym-card border border-gym-border rounded-xl text-center"
-            >
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-gym-text-muted mt-1">{stat.label}</p>
-            </div>
+            <Card key={stat.label} className="text-center">
+              <CardContent className="p-3">
+                <p className={`text-2xl font-bold ${stat.color}`}>
+                  {stat.value}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stat.label}
+                </p>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gym-text-muted" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
               type="text"
               placeholder="Search members..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gym-card border border-gym-border rounded-lg text-gym-text text-sm placeholder:text-gym-text-muted focus:outline-none focus:border-gym-primary"
+              className="pl-10"
             />
           </div>
-          <div className="flex bg-gym-card border border-gym-border rounded-lg overflow-hidden overflow-x-auto">
+          <div className="flex rounded-lg overflow-hidden overflow-x-auto border border-border">
             {["all", "active", "trial", "frozen", "cancelled"].map((s) => (
-              <button
+              <Button
                 key={s}
+                variant={statusFilter === s ? "default" : "ghost"}
+                size="sm"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-2 text-xs font-medium capitalize ${statusFilter === s ? "bg-gym-primary text-white" : "text-gym-text-secondary hover:text-gym-text"}`}
+                className={cn(
+                  "rounded-none capitalize",
+                  statusFilter === s ? "" : "text-muted-foreground",
+                )}
               >
                 {s}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-gym-card border border-gym-border rounded-xl overflow-x-auto">
-          <table className="w-full min-w-[800px]">
-            <thead>
-              <tr className="border-b border-gym-border">
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Member
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Plan
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Status
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Risk
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Visits/Mo
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs uppercase">Member</TableHead>
+                <TableHead className="text-xs uppercase">Plan</TableHead>
+                <TableHead className="text-xs uppercase">Status</TableHead>
+                <TableHead className="text-xs uppercase">Risk</TableHead>
+                <TableHead className="text-xs uppercase">Visits/Mo</TableHead>
+                <TableHead className="text-xs uppercase">
                   Last Check-in
-                </th>
-                <th className="text-left p-3 text-xs font-medium text-gym-text-muted uppercase">
-                  Billing
-                </th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+                <TableHead className="text-xs uppercase">Billing</TableHead>
+                <TableHead className="w-8"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((member) => (
-                <tr
+                <TableRow
                   key={member.id}
                   onClick={() => setSelectedMember(member.id)}
-                  className={`border-b border-gym-border/50 hover:bg-gym-bg/50 cursor-pointer transition-colors ${selectedMember === member.id ? "bg-gym-bg/50" : ""}`}
+                  className={cn(
+                    "cursor-pointer",
+                    selectedMember === member.id && "bg-secondary/50",
+                  )}
                 >
-                  <td className="p-3">
+                  <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gym-primary/20 rounded-full flex items-center justify-center text-xs font-bold text-gym-primary">
-                        {member.avatar || getInitials(member.name)}
-                      </div>
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                          {member.avatar || getInitials(member.name)}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
-                        <span className="text-sm font-medium text-gym-text">
+                        <span className="text-sm font-medium text-foreground">
                           {member.name}
                         </span>
-                        <p className="text-xs text-gym-text-muted">
+                        <p className="text-xs text-muted-foreground">
                           {member.email}
                         </p>
                       </div>
                     </div>
-                  </td>
-                  <td className="p-3 text-sm text-gym-text-secondary">
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {member.plan}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`text-xs font-medium px-2 py-1 rounded-full capitalize ${statusColors[member.status]}`}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={statusVariant[member.status] ?? "secondary"}
+                      className="capitalize"
                     >
                       {member.status}
-                    </span>
-                  </td>
-                  <td className="p-3">
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-1.5">
                       {(member.riskLevel === "high" ||
                         member.riskLevel === "critical") && (
@@ -298,364 +390,300 @@ export default function MembersClient({ initialMembers, counts }: Props) {
                         {member.riskScore}%
                       </span>
                     </div>
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-1">
                       {member.monthlyVisits >= 15 ? (
-                        <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                        <TrendingUp className="w-3.5 h-3.5 text-success" />
                       ) : member.monthlyVisits <= 5 ? (
-                        <TrendingDown className="w-3.5 h-3.5 text-red-400" />
+                        <TrendingDown className="w-3.5 h-3.5 text-destructive" />
                       ) : null}
-                      <span className="text-sm text-gym-text-secondary">
+                      <span className="text-sm text-muted-foreground">
                         {member.monthlyVisits}
                       </span>
                     </div>
-                  </td>
-                  <td className="p-3 text-xs text-gym-text-muted">
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
                     {formatDate(member.lastCheckIn)}
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <span
                       className={`text-xs font-medium capitalize ${billingColors[member.billingStatus]}`}
                     >
                       {member.billingStatus}
                     </span>
-                  </td>
-                  <td className="p-3">
-                    <ChevronRight className="w-4 h-4 text-gym-text-muted" />
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
               ))}
               {filtered.length === 0 && (
-                <tr>
-                  <td
+                <TableRow>
+                  <TableCell
                     colSpan={8}
-                    className="p-8 text-center text-gym-text-muted text-sm"
+                    className="h-24 text-center text-muted-foreground text-sm"
                   >
                     No members found{search ? ` matching "${search}"` : ""}.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
       {/* Detail Panel */}
       {selected && (
-        <div className="fixed inset-0 lg:inset-auto lg:right-0 lg:top-0 w-full lg:w-[420px] h-full bg-gym-card border-l border-gym-border p-6 overflow-auto z-40">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gym-text">Member Profile</h2>
-            <button
-              onClick={() => setSelectedMember(null)}
-              className="p-1 hover:bg-gym-bg rounded"
-            >
-              <X className="w-4 h-4 text-gym-text-muted" />
-            </button>
-          </div>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-gym-primary/20 rounded-full flex items-center justify-center text-gym-primary text-xl font-bold">
-              {selected.avatar || getInitials(selected.name)}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gym-text">
-                {selected.name}
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${statusColors[selected.status]}`}
-                >
-                  {selected.status}
-                </span>
-                <span className="text-xs text-gym-text-muted">
-                  {selected.plan} Plan
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2 mb-6">
-            <div className="flex items-center gap-3 p-3 bg-gym-bg rounded-lg">
-              <Mail className="w-4 h-4 text-gym-text-muted" />
-              <span className="text-sm text-gym-text">{selected.email}</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-gym-bg rounded-lg">
-              <Phone className="w-4 h-4 text-gym-text-muted" />
-              <span className="text-sm text-gym-text">
-                {selected.phone || "No phone"}
-              </span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <div className="flex items-center gap-1.5 mb-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-gym-text-muted" />
-                <p className="text-xs text-gym-text-muted">Risk Score</p>
-              </div>
-              <p
-                className={`text-xl font-bold ${riskColors[selected.riskLevel]}`}
+        <Card className="fixed inset-0 lg:inset-auto lg:right-0 lg:top-0 w-full lg:w-[420px] h-full rounded-none z-40 overflow-auto">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-foreground">
+                Member Profile
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedMember(null)}
               >
-                {selected.riskScore}%
-              </p>
-              <p
-                className={`text-xs capitalize ${riskColors[selected.riskLevel]}`}
-              >
-                {selected.riskLevel}
-              </p>
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Activity className="w-3.5 h-3.5 text-gym-text-muted" />
-                <p className="text-xs text-gym-text-muted">Monthly Visits</p>
-              </div>
-              <p className="text-xl font-bold text-gym-text">
-                {selected.monthlyVisits}
-              </p>
-            </div>
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Calendar className="w-3.5 h-3.5 text-gym-text-muted" />
-                <p className="text-xs text-gym-text-muted">Last Check-in</p>
-              </div>
-              <p className="text-sm font-medium text-gym-text">
-                {formatDate(selected.lastCheckIn)}
-              </p>
-            </div>
-            <div className="p-3 bg-gym-bg rounded-lg">
-              <div className="flex items-center gap-1.5 mb-1">
-                <CreditCard className="w-3.5 h-3.5 text-gym-text-muted" />
-                <p className="text-xs text-gym-text-muted">Billing</p>
-              </div>
-              <p
-                className={`text-sm font-medium capitalize ${billingColors[selected.billingStatus]}`}
-              >
-                {selected.billingStatus}
-              </p>
-            </div>
-          </div>
-          <div className="mb-6">
-            <p className="text-xs text-gym-text-muted mb-2">Tags</p>
-            <div className="flex flex-wrap gap-1.5">
-              {selected.tags.length > 0 ? (
-                selected.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs bg-gym-bg border border-gym-border px-2 py-1 rounded text-gym-text-secondary"
+            <div className="flex items-center gap-4 mb-6">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback className="bg-primary/20 text-primary text-xl font-bold">
+                  {selected.avatar || getInitials(selected.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {selected.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge
+                    variant={statusVariant[selected.status] ?? "secondary"}
+                    className="capitalize"
                   >
-                    {tag}
+                    {selected.status}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {selected.plan} Plan
                   </span>
-                ))
-              ) : (
-                <span className="text-xs text-gym-text-muted">No tags</span>
-              )}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="mb-6">
-            <p className="text-xs text-gym-text-muted mb-2">Notes</p>
-            <p className="text-sm text-gym-text-secondary bg-gym-bg p-3 rounded-lg">
-              {selected.notes || "No notes"}
-            </p>
-          </div>
-          <div className="mb-6">
-            <p className="text-xs text-gym-text-muted mb-1">Member Since</p>
-            <p className="text-sm text-gym-text">
-              {formatDate(selected.joinDate)}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <button className="w-full flex items-center justify-center gap-2 bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-              <Mail className="w-4 h-4" />
-              Send Message
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="flex items-center justify-center gap-2 bg-gym-bg hover:bg-gym-border text-gym-text px-3 py-2 rounded-lg text-xs font-medium border border-gym-border"
-              >
-                <Phone className="w-3.5 h-3.5" />
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(selected.id)}
-                className="flex items-center justify-center gap-2 bg-gym-bg hover:bg-red-500/20 text-gym-text hover:text-red-400 px-3 py-2 rounded-lg text-xs font-medium border border-gym-border"
-              >
-                <X className="w-3.5 h-3.5" />
-                Delete
-              </button>
+            <div className="space-y-2 mb-6">
+              <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">
+                  {selected.email}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">
+                  {selected.phone || "No phone"}
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="p-3 bg-background rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Risk Score</p>
+                </div>
+                <p
+                  className={`text-xl font-bold ${riskColors[selected.riskLevel]}`}
+                >
+                  {selected.riskScore}%
+                </p>
+                <p
+                  className={`text-xs capitalize ${riskColors[selected.riskLevel]}`}
+                >
+                  {selected.riskLevel}
+                </p>
+              </div>
+              <div className="p-3 bg-background rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Activity className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">
+                    Monthly Visits
+                  </p>
+                </div>
+                <p className="text-xl font-bold text-foreground">
+                  {selected.monthlyVisits}
+                </p>
+              </div>
+              <div className="p-3 bg-background rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Last Check-in</p>
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  {formatDate(selected.lastCheckIn)}
+                </p>
+              </div>
+              <div className="p-3 bg-background rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Billing</p>
+                </div>
+                <p
+                  className={`text-sm font-medium capitalize ${billingColors[selected.billingStatus]}`}
+                >
+                  {selected.billingStatus}
+                </p>
+              </div>
+            </div>
+            <div className="mb-6">
+              <p className="text-xs text-muted-foreground mb-2">Tags</p>
+              <div className="flex flex-wrap gap-1.5">
+                {selected.tags.length > 0 ? (
+                  selected.tags.map((tag) => (
+                    <Badge key={tag} variant="outline">
+                      {tag}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No tags</span>
+                )}
+              </div>
+            </div>
+            <div className="mb-6">
+              <p className="text-xs text-muted-foreground mb-2">Notes</p>
+              <p className="text-sm text-muted-foreground bg-background p-3 rounded-lg">
+                {selected.notes || "No notes"}
+              </p>
+            </div>
+            <div className="mb-6">
+              <p className="text-xs text-muted-foreground mb-1">Member Since</p>
+              <p className="text-sm text-foreground">
+                {formatDate(selected.joinDate)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Button className="w-full">
+                <Mail className="w-4 h-4 mr-2" />
+                Send Message
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEditModal(true)}
+                >
+                  <Phone className="w-3.5 h-3.5 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDelete(selected.id)}
+                  className="hover:bg-destructive/20 hover:text-destructive hover:border-destructive/50"
+                >
+                  <X className="w-3.5 h-3.5 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Add Member Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gym-card border border-gym-border rounded-xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gym-text">Add Member</h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-1 hover:bg-gym-bg rounded"
-              >
-                <X className="w-4 h-4 text-gym-text-muted" />
-              </button>
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Member</DialogTitle>
+            <DialogDescription>Add a new member to the gym.</DialogDescription>
+          </DialogHeader>
+          <form action={handleCreate} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="add-name">Name *</Label>
+              <Input id="add-name" name="name" required />
             </div>
-            <form action={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Name *
-                </label>
-                <input
-                  name="name"
-                  required
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Email *
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Phone
-                </label>
-                <input
-                  name="phone"
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Plan
-                </label>
-                <select
-                  name="plan"
-                  defaultValue="Trial"
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-                >
-                  <option value="Trial">Trial</option>
-                  <option value="Basic">Basic</option>
-                  <option value="Unlimited">Unlimited</option>
-                  <option value="Premium">Premium</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {isPending ? "Adding..." : "Add Member"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="space-y-2">
+              <Label htmlFor="add-email">Email *</Label>
+              <Input id="add-email" name="email" type="email" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-phone">Phone</Label>
+              <Input id="add-phone" name="phone" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-plan">Plan</Label>
+              <AddPlanSelect />
+            </div>
+            <Button type="submit" disabled={isPending} className="w-full">
+              {isPending ? "Adding..." : "Add Member"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Member Modal */}
-      {showEditModal && selected && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gym-card border border-gym-border rounded-xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gym-text">Edit Member</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-1 hover:bg-gym-bg rounded"
-              >
-                <X className="w-4 h-4 text-gym-text-muted" />
-              </button>
-            </div>
+      <Dialog
+        open={showEditModal && !!selected}
+        onOpenChange={setShowEditModal}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+            <DialogDescription>Update member information.</DialogDescription>
+          </DialogHeader>
+          {selected && (
             <form action={handleUpdate} className="space-y-4">
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Name *
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name *</Label>
+                <Input
+                  id="edit-name"
                   name="name"
                   required
                   defaultValue={selected.name}
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
                 />
               </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Email *
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email *</Label>
+                <Input
+                  id="edit-email"
                   name="email"
                   type="email"
                   required
                   defaultValue={selected.email}
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
                 />
               </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Phone
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
                   name="phone"
                   defaultValue={selected.phone ?? ""}
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
                 />
               </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Plan
-                </label>
-                <select
-                  name="plan"
-                  defaultValue={selected.plan}
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-                >
-                  <option value="Trial">Trial</option>
-                  <option value="Basic">Basic</option>
-                  <option value="Unlimited">Unlimited</option>
-                  <option value="Premium">Premium</option>
-                </select>
+              <div className="space-y-2">
+                <Label htmlFor="edit-plan">Plan</Label>
+                <EditPlanSelect defaultValue={selected.plan} />
               </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  defaultValue={selected.status}
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary"
-                >
-                  <option value="trial">Trial</option>
-                  <option value="active">Active</option>
-                  <option value="frozen">Frozen</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <EditStatusSelect defaultValue={selected.status} />
               </div>
-              <div>
-                <label className="block text-xs text-gym-text-muted mb-1">
-                  Notes
-                </label>
-                <textarea
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea
+                  id="edit-notes"
                   name="notes"
                   rows={3}
                   defaultValue={selected.notes ?? ""}
-                  className="w-full px-3 py-2 bg-gym-bg border border-gym-border rounded-lg text-gym-text text-sm focus:outline-none focus:border-gym-primary resize-none"
                 />
               </div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full bg-gym-primary hover:bg-gym-primary/80 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
+              <Button type="submit" disabled={isPending} className="w-full">
                 {isPending ? "Saving..." : "Save Changes"}
-              </button>
+              </Button>
             </form>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

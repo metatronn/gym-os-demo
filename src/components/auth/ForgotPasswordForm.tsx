@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -34,7 +37,7 @@ export default function ForgotPasswordForm() {
       }
 
       setSuccess(
-        "If that email is in GYM OS, we’ve sent password reset instructions.",
+        "If that email is in GYM OS, we've sent password reset instructions.",
       );
       setLoading(false);
     } catch {
@@ -47,51 +50,45 @@ export default function ForgotPasswordForm() {
     <AuthShell
       eyebrow="Account Recovery"
       title="Reset your password"
-      description="Enter your email and we’ll send you a secure reset link."
+      description="Enter your email and we'll send you a secure reset link."
       footer={
         <p>
           Back to{" "}
-          <Link href="/sign-in" className="text-gym-accent hover:underline">
-            sign in
-          </Link>
+          <Button variant="link" asChild className="h-auto p-0">
+            <Link href="/sign-in">sign in</Link>
+          </Button>
         </p>
       }
     >
       {error ? (
-        <div className="mb-5 rounded-xl border border-gym-danger/20 bg-gym-danger/10 px-4 py-3 text-sm text-gym-danger">
+        <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
       {success ? (
-        <div className="mb-5 rounded-xl border border-gym-primary/20 bg-gym-primary/10 px-4 py-3 text-sm text-gym-accent">
+        <div className="mb-5 rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
           {success}
         </div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gym-text-secondary">
-            Email
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
-            className="w-full rounded-xl border border-gym-border bg-gym-bg px-4 py-3 text-gym-text outline-none transition-colors focus:border-gym-primary"
             placeholder="owner@ironjawboxing.com"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gym-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gym-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="w-full">
           {loading ? "Sending reset link..." : "Send reset link"}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   );
